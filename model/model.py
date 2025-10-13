@@ -2,33 +2,47 @@ import torch.nn as nn
 import numpy as np
 import math
 from model.TCN import TCNModule
+from bayesian import bayesianModule
 
-class model(nn.Module):
+class DHBCNN(nn.Module):
     def __init__(self, n_features, n_timesteps, dilation=2, k=3):
         super().__init__()
 
-        n_channels = 32 * np.sqrt(n_features)
+        n_channels = int(32 * np.sqrt(n_features))
 
         ins = (n_timesteps-1)/(2* (k-1)) + 1
         B = math.ceil(math.log2(ins))
 
         blocks = []
-        blocks.append(TCNModule(dilation, n_channels, c_in = n_features, k=k))
+        blocks.append(TCNModule(dilation**0, n_channels, c_in = n_features, k=k))
 
-        for _ in range(0, B-1):
-            blocks.append(TCNModule(dilation, n_channels, k=k))
+        for b in range(1, B):
+            dilation_b = dilation**b
+            blocks.append(TCNModule(dilation_b, n_channels, k=k))
 
         self.blocks = nn.ModuleList(blocks)
 
         #Add global pooling layer to collapse timedimension
-        self.pool = nn.AvgPool1d(kernel_size=1)
+        self.pool = nn.AdaptiveAvgPool1d(1)
         #Size now becomes n_channels
 
         #Add bayesian linear layer
+        self.mu = bayesianModule(n_channels)
+        self.sigma = bayesianModule(n_channels)
 
-    def forward(self, X):
+    def feature_extractor(self, X):
         for block in self.blocks:
             X = block(X)
         X = self.pool(X)
-        #add beysian linear layer here
-        #Add 2 output heads.
+        X = X.squeeze(-1)
+        return X
+        
+    def forward(self, X):
+        X = self.feature_extractor(X)
+        mu = self.mu(X)
+        sigma = self.sigma(X)
+        return mu, sigma
+
+    def predict_mu(self, X):
+        self.feature_extractor(X)
+        return self.mu(X)
