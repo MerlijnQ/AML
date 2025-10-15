@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
+import random
+
 FEATURES = ['nat_demand', 'T2M_toc', 'QV2M_toc', 'TQL_toc', 'W2M_toc',
        'T2M_san', 'QV2M_san', 'TQL_san', 'W2M_san', 'T2M_dav', 'QV2M_dav',
        'TQL_dav', 'W2M_dav', 'Holiday_ID', 'holiday', 'school']
@@ -51,9 +53,19 @@ class TimeSeriesDataset(Dataset):
                     "The number of days wanted is outside the range of samples in the dataset (={})."
                 ).format(len(self._data))
             )
-        split_idx = (self._X.size(dim=0) - n_days_test)*self._day
+        split_idx = (self._X.size(dim=0) - n_days_test)*self._day + self._input_window
         arg = [self._input_window, self._output_window, self._features]
         return (TimeSeriesDataset(self._orig_dataset[:split_idx], *arg), TimeSeriesDataset(self._orig_dataset[split_idx:], *arg))
+    
+    def train_val_split(self, n_days_train, n_days_val):
+        if n_days_train > self._X.size(dim=0):
+            raise ValueError(
+                (
+                    "The number of days wanted is outside the range of samples in the dataset (={})."
+                ).format(len(self._data))
+            )
+        arg = [self._input_window, self._output_window, self._features]
+        return (TimeSeriesDataset(self._orig_dataset[0:n_days_train*self._day+self._input_window], *arg), TimeSeriesDataset(self._orig_dataset[n_days_train*self._day:n_days_val*self._day+self._input_window], *arg))
 
 
     @property
@@ -67,15 +79,62 @@ class TimeSeriesDataset(Dataset):
     @property
     def y(self):
         return self._y
+    
+class ForwardTrainingCrossValidation():
+    def __init__(self, dataset:TimeSeriesDataset, k_folds=10):
+        self._dataset = dataset
+        self._k_folds = k_folds
+        remainder = len(dataset)%k_folds
+
+        if remainder == 0:
+            size_fold = int(len(dataset)/k_folds)
+            self._split_idx = [(i+1)*size_fold for i in range(k_folds-1)]
+        else:
+            ls = [i for i in range(k_folds)]
+            random_idx = random.sample(ls,remainder)
+
+            size_fold = int(len(dataset)/k_folds)
+            self._split_idx = []
+
+            for i in range(k_folds):
+                previous_split = self._split_idx[i-1] if i > 0 else 0
+                self._split_idx.append(size_fold + previous_split)
+                if i in random_idx:
+                    self._split_idx[i] += 1
+
+    def __getitem__(self, idx):
+        return self._dataset.train_val_split(self._split_idx[idx],self._split_idx[idx+1])
+
+
 
 if __name__ == "__main__":
     path_dataset = "dataset/continuous dataset.csv"
 
     dataset = pd.read_csv(path_dataset)
+
     # discard data from the month covid lockdown happened.
     dataset = dataset[dataset["datetime"] <= "2020-03-01 00:00:00"]
 
+    input_window = 48
+    output_window = 24
     features = ['nat_demand', 'T2M_toc']
-    dat_time_series = TimeSeriesDataset(dataset, 48, 24, features)
+
+    dat_time_series = TimeSeriesDataset(dataset, input_window, output_window, features)
+    
     train, test= dat_time_series.train_test_split()
-    print(len(train), len(test))
+    ####################################################################################################################################
+    ####################################################################################################################################
+
+    dat = (dataset["nat_demand"])
+    batch_size = 16
+    n_folds = 10
+    k_fold = ForwardTrainingCrossValidation(train, n_folds)
+    for i in range(n_folds-2):
+        training, validation = k_fold[i]
+
+        train_loader = DataLoader(training, batch_size=batch_size, shuffle=False)
+        val_loader = DataLoader(validation, batch_size=batch_size, shuffle=False)
+
+
+
+
