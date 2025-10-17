@@ -14,12 +14,7 @@ class TimeSeriesDataset(Dataset):
         self._output_window = output_window
         self._features = features
         self._day = 24
-
-        dataset = dataset.sort_values("datetime", ascending=True)
-        features = ["nat_demand", "T2M_toc"] # should be discarded
-        dataset = dataset[features]
-        data = torch.tensor(dataset.values, dtype=torch.float32)
-        self._data = data
+        self._data = self._get_dataset(dataset)
 
         X, y = [],[]
         # get the x (features*input window) and y data points (1*output window) from dataset
@@ -46,6 +41,28 @@ class TimeSeriesDataset(Dataset):
             )
         return self._X[index], self._y[index]
     
+    """Return the dataset on the important features as a torch.tensor"""
+    def _get_dataset(self, dataset):
+        # the features to include
+        features = ["nat_demand", "T2M_toc"] # should be discarded
+
+        # sort the dataset and extract only the features
+        dataset = dataset.sort_values("datetime", ascending=True)[features]
+
+        # Make the dataset in a torch tensor
+        return torch.tensor(dataset.values, dtype=torch.float32)
+    
+    # """Normalize the dataset 'nat_demand' based on the train split"""
+    # def _get_normalized_data_split(self, split_idx):
+    #     # retrieve min and max values of the train half of the data split
+    #     min_value_traindataset = self._orig_dataset[:split_idx]['nat_demand'].min()
+    #     max_value_traindataset = self._orig_dataset[:split_idx]['nat_demand'].max()
+
+    #     # normalize the dataset
+    #     normalized_dataset = self._orig_dataset
+    #     normalized_dataset['nat_demand'] = (self._orig_dataset['nat_demand'] - min_value_traindataset) / (max_value_traindataset - min_value_traindataset)
+    #     return normalized_dataset
+    
     def train_test_split(self, n_days_test=365):
         if n_days_test > self._X.size(dim=0):
             raise ValueError(
@@ -55,6 +72,10 @@ class TimeSeriesDataset(Dataset):
             )
         split_idx = (self._X.size(dim=0) - n_days_test)*self._day + self._input_window
         arg = [self._input_window, self._output_window, self._features]
+
+        # # nomralize the 'nat_demand' based on the train split
+        # normalized_dataset = self._get_normalized_data_split(split_idx)
+
         return (TimeSeriesDataset(self._orig_dataset[:split_idx], *arg), TimeSeriesDataset(self._orig_dataset[split_idx:], *arg))
     
     def train_val_split(self, n_days_train, n_days_val):
@@ -105,6 +126,14 @@ class ForwardTrainingCrossValidation():
     def __getitem__(self, idx):
         return self._dataset.train_val_split(self._split_idx[idx],self._split_idx[idx+1])
 
+def get_normalized_dataset(dataset : TimeSeriesDataset, min_value_dataset = None, max_value_dataset = None):
+    # Normalization using min-max normalization. NOTE: might want to use a different method!
+    if min_value_dataset is None:
+        min_value_dataset = dataset._orig_dataset['nat_demand'].min()
+    if max_value_dataset is None:
+        max_value_dataset = dataset._orig_dataset['nat_demand'].max()
+    normalized_dataset = (dataset._orig_dataset['nat_demand'] - min_value_dataset) / (max_value_dataset - min_value_dataset)
+    return normalized_dataset, min, max
 
 
 if __name__ == "__main__":
@@ -121,7 +150,13 @@ if __name__ == "__main__":
 
     dat_time_series = TimeSeriesDataset(dataset, input_window, output_window, features)
     
-    train, test= dat_time_series.train_test_split()
+    train, test = dat_time_series.train_test_split()
+    train_normalized, min, max = get_normalized_dataset(train)
+    test_normalized, _, _ = get_normalized_dataset(test)
+    print(train)
+    print(test)
+    print(train_normalized[10])
+    print(test_normalized)
     ####################################################################################################################################
     ####################################################################################################################################
 
