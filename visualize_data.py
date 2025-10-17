@@ -8,6 +8,7 @@ df = pd.read_csv('dataset/continuous dataset.csv')
 # Ensure datetime is parsed correctly
 df['datetime'] = pd.to_datetime(df['datetime'])
 df = df.sort_values('datetime')
+df = df[df['datetime'] <= pd.to_datetime('2020-03-01')]
 
 df['day_of_week'] = df['datetime'].dt.day_of_week
 
@@ -17,7 +18,13 @@ df['hour'] = df['datetime'].dt.hour
 # Minute of the day
 df['minute_of_day'] = df['datetime'].dt.hour * 60 + df['datetime'].dt.minute
 
+# Holidays (ID 0-22)
+unique_holiday_IDs = df['Holiday_ID'].unique()
+print(unique_holiday_IDs)
 
+def save_fig(title):
+    os.makedirs("images", exist_ok=True)
+    plt.savefig(f"images/{title}.png")
 
 # Plot to see when covid happened
 def plot_covid():
@@ -108,19 +115,34 @@ def plot_grid_load_intra_day():
     axes[0].plot(avg_daily.index, avg_daily.values, marker='o')
     axes[0].set_title('Average Grid Load per Day of the Week')
     axes[0].set_xlabel('Day of week')
-    axes[0].set_ylabel('Average Grid Load')
+    axes[0].set_ylabel('Grid Load [MWh]')
     axes[0].grid(True)
 
     # Plot 2: Daily (based on minutes)
     axes[1].plot(avg_hourly.index, avg_hourly.values, marker='o')
     axes[1].set_title('Average Daily Grid Load by Hour')
     axes[1].set_xlabel('Hour of Day')
-    axes[1].set_ylabel('Average Grid Load')
+    axes[1].set_ylabel('Grid Load [MWh]')
     axes[1].grid(True)
 
     plt.tight_layout()
-    os.makedirs("images", exist_ok=True)
-    plt.savefig("images/weekly_daily_average.png")
+    save_fig('weekly_daily_average')
     plt.show()
 
-plot_grid_load_intra_day()
+def plot_holiday_IDs():
+    avg_demand = df['nat_demand'].mean()
+    plt.figure(figsize=(10, 5))
+    avg_holiday = df.groupby('Holiday_ID')['nat_demand'].mean()
+    plt.plot(avg_holiday.index, avg_holiday.values, marker='o')
+    plt.axhline(y=avg_demand, color='red', linestyle='--', linewidth=1.5, label='y = average demand')  # ← added line
+    plt.title('Average Daily Grid Load per Holiday')
+    plt.xlabel('Holiday ID')
+    plt.ylabel('Gird Load [MWh]')
+    plt.grid(True)
+    plt.tight_layout()
+    save_fig('holiday_grid_loads')
+    plt.show()
+
+plot_grid_load()
+# plot_grid_load_intra_day()
+# plot_holiday_IDs()
