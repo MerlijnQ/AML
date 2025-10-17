@@ -9,6 +9,16 @@ df = pd.read_csv('dataset/continuous dataset.csv')
 df['datetime'] = pd.to_datetime(df['datetime'])
 df = df.sort_values('datetime')
 
+df['day_of_week'] = df['datetime'].dt.day_of_week
+
+# Hour of the day
+df['hour'] = df['datetime'].dt.hour
+
+# Minute of the day
+df['minute_of_day'] = df['datetime'].dt.hour * 60 + df['datetime'].dt.minute
+
+
+
 # Plot to see when covid happened
 def plot_covid():
     start_date = pd.to_datetime('2020-03-01')
@@ -88,4 +98,29 @@ def plot_grid_load():
     plt.savefig("images/seasonal_decomposition.png")
     plt.show()
 
-plot_grid_load()
+def plot_grid_load_intra_day():
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharey=True)
+    avg_daily = df.groupby('day_of_week')['nat_demand'].mean()
+    avg_hourly = df.groupby('hour')['nat_demand'].mean()
+    avg_minutely = df.groupby('minute_of_day')['nat_demand'].mean()
+
+    # Plot 1: Weekly (based on hours)
+    axes[0].plot(avg_daily.index, avg_daily.values, marker='o')
+    axes[0].set_title('Average Grid Load per Day of the Week')
+    axes[0].set_xlabel('Day of week')
+    axes[0].set_ylabel('Average Grid Load')
+    axes[0].grid(True)
+
+    # Plot 2: Daily (based on minutes)
+    axes[1].plot(avg_hourly.index, avg_hourly.values, marker='o')
+    axes[1].set_title('Average Daily Grid Load by Hour')
+    axes[1].set_xlabel('Hour of Day')
+    axes[1].set_ylabel('Average Grid Load')
+    axes[1].grid(True)
+
+    plt.tight_layout()
+    os.makedirs("images", exist_ok=True)
+    plt.savefig("images/weekly_daily_average.png")
+    plt.show()
+
+plot_grid_load_intra_day()
