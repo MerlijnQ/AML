@@ -55,6 +55,16 @@ class DataLoaderTimeSeries:
     @property
     def test_loader(self):
         return self._test_loader
+    
+def get_normalized_dataset(dataset : TimeSeriesDataset, min_value_dataset = None, max_value_dataset = None):
+    # Normalization using min-max normalization. NOTE: might want to use a different method!
+    if min_value_dataset is None:
+        min_value_dataset = dataset._orig_dataset['nat_demand'].min()
+    if max_value_dataset is None:
+        max_value_dataset = dataset._orig_dataset['nat_demand'].max()
+    normalized_dataset = (dataset._orig_dataset['nat_demand'] - min_value_dataset) / (max_value_dataset - min_value_dataset)
+    return normalized_dataset, min_value_dataset, max_value_dataset
+
 
 
 if __name__ == "__main__":
