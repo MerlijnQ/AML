@@ -2,7 +2,7 @@ import torch.nn as nn
 import numpy as np
 import math
 from model.TCN import TCNModule
-from bayesian import bayesianModule
+from model.bayesian import bayesianModule
 
 class DHBCNN(nn.Module):
     def __init__(self, n_features, n_timesteps, dilation=2, k=3):

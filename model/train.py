@@ -1,5 +1,5 @@
 from model.loss import customELBO
-from model import DHBCNN
+from model.model import DHBCNN
 from torch.utils.data import DataLoader
 import torch
 
