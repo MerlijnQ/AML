@@ -1,4 +1,4 @@
-from model.loss import customELBO
+from model.loss import customELBO, gnll
 from model.model import DHBCNN
 from torch.utils.data import DataLoader
 import torch
@@ -7,7 +7,8 @@ import torch
 class TrainTest():
     def __init__(self, max_epochs=30):
         self.max_epochs = max_epochs
-        self.criterion = customELBO(max_epochs)
+        # self.criterion = customELBO(max_epochs)
+        self.criterion = gnll() 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def test(self, model:DHBCNN, val_loader:DataLoader, epoch):
@@ -24,7 +25,7 @@ class TrainTest():
                 if torch.isnan(sigma).any():
                     print("NaN detected in sigma!")
                     break
-                loss = self.criterion(mu, sigma, y, model, epoch, train=False)
+                loss = self.criterion(mu, sigma, y)
                 if torch.isnan(loss):
                     print("Warning: NaN detected in validation loss")
                 if torch.isinf(loss):
@@ -49,7 +50,7 @@ class TrainTest():
                 X, y = X.to(self.device), y.to(self.device)
                 optimizer.zero_grad()
                 mu, sigma = model(X)
-                loss = self.criterion(mu, sigma, y, model, epoch)
+                loss = self.criterion(mu, sigma, y)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) #Clip to prevent BOOM!
                 optimizer.step()

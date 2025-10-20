@@ -58,3 +58,25 @@ class customELBO(nn.Module):
             total_kl = kl1 + kl2
             return gnll + total_kl
         return gnll
+    
+class gnll(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.eps = 1e-6
+        
+    def GNLL(self, mu, sigma, y):
+        # Ensure sigma is valid
+        # sigma = torch.log1p(torch.exp(sigma))  # softplus for positivity ->Already changed to elu in model predictor
+        # sigma = torch.clamp(sigma, min=self.eps, max=1e3)  # avoid 0 and inf
+        if mu.dim() == 2:
+            mu = mu.unsqueeze(-1)
+            sigma = sigma.unsqueeze(-1)
+            #We get [N, C] but as C is 1 we can lose it
+
+        total = (0.5 * torch.log(2 * torch.pi * sigma) + ((mu - y)**2 / (2 * sigma + self.eps) ))
+        return total.mean()
+    
+    def forward(self, mu, sigma, y):
+        gnll = self.GNLL(mu, sigma, y)
+        return gnll
