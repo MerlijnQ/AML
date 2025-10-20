@@ -44,7 +44,6 @@ class TimeSeriesDataset(Dataset):
             return self._scaled_X[index], self._y[index]
     
     def train_test_split(self, n_years=1):
-        print("train_test_split")
         time = self._orig_dataset["datetime"].iloc[-1]
         split_idx_train = time - pd.DateOffset(years=n_years)
         split_idx_test = split_idx_train - pd.DateOffset(hours=self._input_window+self._output_window)

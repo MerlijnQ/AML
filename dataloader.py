@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 import pandas as pd
 from dataset import TimeSeriesDataset
 from scaler import MinMaxScaler
+from one_hot_encode import one_hot_encode
 
 class DataLoaderTimeSeries:
     def __init__(self, input_window:{24,48,72}, output_window = 24, batch_size = 128):
@@ -12,7 +13,12 @@ class DataLoaderTimeSeries:
 
         self._dataset = self._get_dataset()
         self._features = list(self._dataset.columns.values)
+
+        df_one_hot_encoded = one_hot_encode("Holiday_ID", self._dataset["Holiday_ID"])
+        self._dataset = pd.concat([self._dataset, df_one_hot_encoded], axis=1)
+
         self._features.remove("datetime")
+        self._features.remove("Holiday_ID")
         self._initialize_dataset()
 
     def _get_dataset(self):
