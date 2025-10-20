@@ -38,7 +38,8 @@ class TimeSeriesDataset(Dataset):
                     "The index is outside the range of the dataset (={})."
                 ).format(len(self._data))
             )
-        return self._X[index], self._y[index]
+        X = self._X[index].permute(1, 0) #Change from [T, C] to [C, T]
+        return X, self._y[index]
     
     def train_test_split(self, n_years=1):
         if n_years > self._X.size(dim=0):

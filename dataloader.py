@@ -70,6 +70,4 @@ def get_normalized_dataset(dataset : TimeSeriesDataset, min_value_dataset = None
 if __name__ == "__main__":
     dat_loader = DataLoaderTimeSeries(48)
     feature = dat_loader.get_feature_at_index(0)
-    dat_loader.remove_feature(feature)
-
-
+    dat_loader.remove_feature(feature)  

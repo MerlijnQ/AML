@@ -1,5 +1,5 @@
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
 
 class conv1D(nn.Module):
     def __init__(self, dilation, channels_in, channels_out, k):

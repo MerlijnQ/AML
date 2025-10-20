@@ -29,6 +29,15 @@ class DHBCNN(nn.Module):
         #Add bayesian linear layer
         self.mu = bayesianModule(n_channels)
         self.sigma = bayesianModule(n_channels)
+        # Initialize weights
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
     def feature_extractor(self, X):
         for block in self.blocks:
