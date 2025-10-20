@@ -1,18 +1,19 @@
 from torch.utils.data import DataLoader
 import pandas as pd
 from dataset import TimeSeriesDataset
+from scaler import MinMaxScaler
 
 class DataLoaderTimeSeries:
     def __init__(self, input_window:{24,48,72}, output_window = 24, batch_size = 128):
         self._input_window = input_window
         self._output_window = output_window
         self._batch_size = batch_size
+        self._scaler = MinMaxScaler()
 
         self._dataset = self._get_dataset()
         self._features = list(self._dataset.columns.values)
-        self.remove_feature("datetime")
-
-        self._update_loaders()
+        self._features.remove("datetime")
+        self._initialize_dataset()
 
     def _get_dataset(self):
         path_dataset = "dataset/continuous dataset.csv"
@@ -23,17 +24,30 @@ class DataLoaderTimeSeries:
         dataset["datetime"] = pd.to_datetime(dataset["datetime"])
         return dataset
     
-    def _update_loaders(self):
+    def _initialize_dataset(self):
         dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, self._features)
-        train, test = dat_time_series.train_test_split()
-        training, validation = train.train_test_split()
+        train, self._test = dat_time_series.train_test_split()
+        self._training, self._validation = train.train_test_split()
 
-        self._train_loader = DataLoader(training, batch_size=self._batch_size, shuffle=False)
-        self._val_loader = DataLoader(validation, batch_size=self._batch_size, shuffle=False)
-        self._test_loader = DataLoader(test, batch_size=self._batch_size, shuffle=False)
+        self._scale_input_features()
+        self._update_loaders()
+
+    def _scale_input_features(self):
+        flattened_X = self._training.X.view(-1,len(self._features))
+        self._scaler.fit(flattened_X)
+        self._training.transform(self._scaler)
+        self._validation.transform(self._scaler)
+        self._test.transform(self._scaler)
     
+    def _update_loaders(self):
+        self._train_loader = DataLoader(self._training, batch_size=self._batch_size, shuffle=False)
+        self._val_loader = DataLoader(self._validation, batch_size=self._batch_size, shuffle=False)
+        self._test_loader = DataLoader(self._test, batch_size=self._batch_size, shuffle=False)
 
     def remove_feature(self, feature):
+        self._training.remove_feature(feature)
+        self._validation.remove_feature(feature)
+        self._test.remove_feature(feature)
         self._features.remove(feature)
         self._update_loaders()
 
@@ -55,17 +69,6 @@ class DataLoaderTimeSeries:
     @property
     def test_loader(self):
         return self._test_loader
-    
-def get_normalized_dataset(dataset : TimeSeriesDataset, min_value_dataset = None, max_value_dataset = None):
-    # Normalization using min-max normalization. NOTE: might want to use a different method!
-    if min_value_dataset is None:
-        min_value_dataset = dataset._orig_dataset['nat_demand'].min()
-    if max_value_dataset is None:
-        max_value_dataset = dataset._orig_dataset['nat_demand'].max()
-    normalized_dataset = (dataset._orig_dataset['nat_demand'] - min_value_dataset) / (max_value_dataset - min_value_dataset)
-    return normalized_dataset, min_value_dataset, max_value_dataset
-
-
 
 if __name__ == "__main__":
     dat_loader = DataLoaderTimeSeries(48)
