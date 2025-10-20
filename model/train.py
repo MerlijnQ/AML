@@ -59,7 +59,7 @@ class TrainTest():
             if test_loss < best:
                 best = test_loss
                 no_improvement = 0
-                best_model = model.state_dict()
+                best_model = model
             else:
                 no_improvement += 1
 

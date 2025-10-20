@@ -1,29 +1,56 @@
 from dataloader import DataLoaderTimeSeries
-# from model.model import DHBCNN
-# from model.train import TrainTest
 from model.ensemble import create_ensemble
-from shap_explainer import explain_predictions
+from shap_explainer import explain_predictions_test
 
 if __name__ == "__main__":
-    uncertainty = [[],[],[]]
+    epistemic_uncertainty = [[],[],[]]
+    aleatoric_uncertainty = [[],[],[]]
     accuracy = [[],[],[]]
     discarded = [[],[],[]]
 
     window_sizes = [24, 48, 72]
 
     for s in range(len(window_sizes)):
+        print(f"Window size: {window_sizes[s]}")
+
         data_loader = DataLoaderTimeSeries(window_sizes[s])
-        for n in range(len(data_loader.features), 0, -1):
-            create_new_ensemble = create_ensemble(
-                n, window_sizes[s], data_loader.train_loader, data_loader.validation_loader)
-            model = create_new_ensemble.get_ensemble_model() #Model returns rmse, epistemic, aleatoric on prediction
+
+        num_features = len(data_loader.features)
+
+        for n in range(0, num_features-2):
+            data_loader.remove_feature(data_loader.get_feature_at_index(0))
+        num_features = len(data_loader.features)
+
+        for n in range(num_features, 0, -1):
+            print(f"Number of features: {n}")
+
+            # Create model
+            ensemble_builder = create_ensemble(
+                n,
+                window_sizes[s],
+                data_loader.train_loader,
+                data_loader.validation_loader
+            )
+            model = ensemble_builder.get_ensemble_model() # Model returns rmse, epistemic, aleatoric on prediction
+
+            # Evaluate model
             rmse, epi, alea = model.evaluate(data_loader.test_loader)
-            # model = DHBCNN(n, window_sizes[s])
-            # model = TrainTest().train(model, data_loader.train_loader, data_loader.validation_loader)
-            # uncertainty[s].append(   predict uncertainty(model, DataLoader)   )
-            # accuracy[s].append(      predict accuracy(model, DataLoader)      )
-            discarded[s].append(explain_predictions(data_loader.train_loader, data_loader.validation_loader, model))
-            discarded_feature = data_loader.get_feature_at_index(discarded[s][-1])
+            print(f"RMSE: {rmse}, epistemic: {epi}, aleatoric: {alea}")
+
+            # Store uncertainties and accuracy
+            epistemic_uncertainty[s].append(epi)
+            aleatoric_uncertainty[s].append(alea)
+            accuracy[s].append(rmse)
+
+            # Feature selection with SHAP
+            discarded_feature_index = explain_predictions_test(data_loader.train_loader, data_loader.test_loader, model)
+            discarded_feature = data_loader.get_feature_at_index(discarded_feature_index)
+
+            # Store discarded feature
+            discarded[s].append(discarded_feature)
+
+            # Remove the feature from the dataloader
+            print(f"Discarding feature: {discarded_feature}")
             data_loader.remove_feature(discarded_feature)
 
     # figures = make figure(uncertainty, Accuracy, Discarded)

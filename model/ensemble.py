@@ -35,7 +35,7 @@ class ensemble_DHBCNN(nn.Module):
             mu_model = []
             sigma_model = []
             for X, _ in test_loader:
-                X, _ = X.to(self.device)
+                X = X.to(self.device)
                 mu, sigma = model(X)
                 mu_model.append(mu)
                 sigma_model.append(sigma)
