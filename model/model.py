@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 import numpy as np
 import math
 from model.TCN import TCNModule
@@ -48,6 +49,7 @@ class DHBCNN(nn.Module):
         X = self.sigma(X)
         #We need to following trick to prevent extreme values that we cannot use. I.e. it stabilizes. Derived from: https://arxiv.org/pdf/2012.14389
         sigma = 1 + F.elu(X) + self.eps
+        sigma = torch.clamp(X, min=self.eps)
         return sigma
     
     def feature_extractor(self, X):

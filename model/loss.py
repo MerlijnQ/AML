@@ -20,7 +20,7 @@ class customELBO(nn.Module):
             sigma = sigma.unsqueeze(-1)
             #We get [N, C] but as C is 1 we can lose it
 
-        total = (0.5 * torch.log(2 * torch.pi * sigma) + ((mu - y)**2 / (2 * sigma + self.eps) ))
+        total = 0.5 * torch.log(2 * torch.pi * sigma**2) + ((mu - y)**2 / (2 * sigma**2 + self.eps))
         return total.mean()
 
     def KL(self, mu, sigma, sigma_p):
@@ -74,7 +74,7 @@ class gnll(nn.Module):
             sigma = sigma.unsqueeze(-1)
             #We get [N, C] but as C is 1 we can lose it
 
-        total = (0.5 * torch.log(2 * torch.pi * sigma) + ((mu - y)**2 / (2 * sigma + self.eps) ))
+        total = 0.5 * torch.log(2 * torch.pi * sigma**2) + ((mu - y)**2 / (2 * sigma**2 + self.eps))
         return total.mean()
     
     def forward(self, mu, sigma, y):
