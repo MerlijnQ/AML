@@ -29,8 +29,10 @@ def get_samples_from_loader(loader, n_samples):
             break
     return torch.cat(samples, dim=0)[:n_samples]
 
-# Explain the predictions and return the least important feature
-def explain_predictions(X_train, X_test, model, features):
+# Function that explain the predictions and returns an array with features and shap values and least important feature.
+# NOTE: Only set apple_silicon=True if testing SHAP on a device with Apple Silicon.
+#       This fixes a running error, but it will return different SHAP values.
+def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     background_distribution = get_samples_from_loader(X_train, 100).to(device=device, dtype=torch.float32)
@@ -42,10 +44,16 @@ def explain_predictions(X_train, X_test, model, features):
     background_np = background_distribution.view(background_distribution.size(0), -1).cpu().numpy()
     test_np = test_tensor.view(test_tensor.size(0), -1).cpu().numpy()
 
-    shap_explainer = shap.GradientExplainer(
-        model=lambda x: shap_predict(model, x, input_shape),
-        data=background_np
-    )
+    if not apple_silicon:
+        shap_explainer = shap.GradientExplainer(
+            model=lambda x: shap_predict(model, x, input_shape),
+            data=background_np
+        )
+    else:
+        shap_explainer = shap.KernelExplainer(
+            model=lambda x: shap_predict(model, x, input_shape),
+            data=background_np
+        )
     shap_values = shap_explainer.shap_values(test_np)
 
     global_importance = np.abs(shap_values)
@@ -53,7 +61,13 @@ def explain_predictions(X_train, X_test, model, features):
     global_importance = global_importance.mean(axis=2) # average over timesteps
     test_features_only = test_np.reshape(test_np.shape[0], n_features, seq_len).mean(axis=2)
 
-    shap.summary_plot(global_importance, test_features_only, feature_names=features, show=False)
+    shap_values_obj = shap._explanation.Explanation(
+        values=global_importance,
+        data=test_features_only,
+        feature_names=features
+    )
+
+    shap.plots.bar(shap_values_obj, max_display=n_features, show=False)
 
     title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
     plt.title(title)
@@ -67,44 +81,6 @@ def explain_predictions(X_train, X_test, model, features):
     idx_least_important_feature = np.argmin(avg_importance)
     least_important_feature = features[idx_least_important_feature]
 
-    return least_important_feature
+    feature_importance_tuples = [(feat, float(val)) for feat, val in zip(features, avg_importance)]
 
-# Test function with small sample sizes that works on Apple Silicon
-def explain_predictions_test(X_train, X_test, model, features):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    background_distribution = get_samples_from_loader(X_train, 1).to(device=device, dtype=torch.float32)
-    test_tensor = get_samples_from_loader(X_test, 1).to(device=device, dtype=torch.float32)
-
-    _, n_features, seq_len = background_distribution.shape
-    input_shape = (n_features, seq_len)
-
-    background_np = background_distribution.view(background_distribution.size(0), -1).cpu().numpy()
-    test_np = test_tensor.view(test_tensor.size(0), -1).cpu().numpy()
-
-    shap_explainer = shap.KernelExplainer(
-        model=lambda x: shap_predict(model, x, input_shape),
-        data=background_np
-    )
-    shap_values = shap_explainer.shap_values(test_np)
-
-    global_importance = np.abs(shap_values)
-    global_importance = global_importance.reshape(global_importance.shape[0], n_features, seq_len)
-    global_importance = global_importance.mean(axis=2) # average over timesteps
-    test_features_only = test_np.reshape(test_np.shape[0], n_features, seq_len).mean(axis=2)
-
-    shap.summary_plot(global_importance, test_features_only, feature_names=features, show=False)
-
-    title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
-    plt.title(title)
-    filename = f"shap_{n_features}_features_{seq_len}_steps.png"
-    os.makedirs("SHAP_plots", exist_ok=True)
-    save_path = os.path.join("SHAP_plots", filename)
-    plt.savefig(save_path, bbox_inches="tight", dpi=300)
-    plt.close()
-
-    avg_importance = global_importance.mean(axis=0)
-    idx_least_important_feature = np.argmin(avg_importance)
-    least_important_feature = features[idx_least_important_feature]
-
-    return least_important_feature
+    return feature_importance_tuples, least_important_feature
