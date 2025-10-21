@@ -1,6 +1,11 @@
 import random
 import matplotlib.pyplot as plt
 
+# TODO: 
+#   - remove title
+#   - remove grid
+#   - create subplots
+#   - save figures as pdf
 # NOTE: Please double check if graph is not displayed in reserved: e.g. nr_features = 19 gives y-values for nr_features = 1
 # input RMSE, aleatoric unc., epistemic unc.
 # output: graph
