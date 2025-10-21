@@ -57,8 +57,8 @@ class TimeSeriesDataset(Dataset):
         arg_test = [self._input_window, self._output_window, self._features.copy()]
         return (TimeSeriesDataset(dat_train, *arg_train), TimeSeriesDataset(dat_test, *arg_test))
 
-    def transform(self, scaler: MinMaxScaler):
-        self._scaled_X = scaler.transform(self._X)
+    def transform(self, scaler: MinMaxScaler, n_discrete_features):
+        self._scaled_X = scaler.transform(self._X, n_discrete_features)
 
     def remove_feature(self, feature):
         feature_index = self._features.index(feature)
@@ -86,3 +86,7 @@ class TimeSeriesDataset(Dataset):
     @property
     def y(self):
         return self._y
+    
+    @property
+    def scalable_data(self):
+        return self._data[0:len(self._data)-self._output_window-1]
