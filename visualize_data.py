@@ -131,18 +131,44 @@ def plot_grid_load_intra_day():
 
 def plot_holiday_IDs():
     avg_demand = df['nat_demand'].mean()
+
+    # Compute mean and standard deviation per Holiday_ID
+    grouped = df.groupby('Holiday_ID')['nat_demand']
+    avg_holiday = grouped.mean()
+    std_holiday = grouped.std()
+
     plt.figure(figsize=(10, 5))
-    avg_holiday = df.groupby('Holiday_ID')['nat_demand'].mean()
-    plt.plot(avg_holiday.index, avg_holiday.values, marker='o')
-    plt.axhline(y=avg_demand, color='red', linestyle='--', linewidth=1.5, label='y = average demand')  # ← added line
+    # Plot with error bars representing standard deviation
+    plt.errorbar(
+        avg_holiday.index,
+        avg_holiday.values,
+        yerr=std_holiday.values,
+        fmt='o-',
+        ecolor='gray',
+        elinewidth=1,
+        capsize=4,
+        label='Deviation ± 1 SD'
+    )
+
+    # Add average demand line
+    plt.axhline(
+        y=avg_demand,
+        color='red',
+        linestyle='--',
+        linewidth=1.5,
+        label='Average Demand'
+    )
+
     plt.title('Average Daily Grid Load per Holiday')
     plt.xlabel('Holiday ID')
-    plt.ylabel('Gird Load [MWh]')
+    plt.ylabel('Grid Load [MWh]')
+    plt.legend()
     plt.grid(True)
     plt.tight_layout()
     save_fig('holiday_grid_loads')
     plt.show()
 
-plot_grid_load()
+
+# plot_grid_load()
 # plot_grid_load_intra_day()
-# plot_holiday_IDs()
+plot_holiday_IDs()
