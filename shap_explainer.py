@@ -1,6 +1,8 @@
 import shap
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 # Wrapper for the predictions because SHAP requires the model to be deterministic
 def shap_predict(model, X, input_shape):
@@ -51,7 +53,15 @@ def explain_predictions(X_train, X_test, model, features):
     global_importance = global_importance.mean(axis=2) # average over timesteps
     test_features_only = test_np.reshape(test_np.shape[0], n_features, seq_len).mean(axis=2)
 
-    shap.summary_plot(global_importance, test_features_only, feature_names=features)
+    shap.summary_plot(global_importance, test_features_only, feature_names=features, show=False)
+
+    title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
+    plt.title(title)
+    filename = f"shap_{n_features}_features_{seq_len}_steps.png"
+    os.makedirs("SHAP_plots", exist_ok=True)
+    save_path = os.path.join("SHAP_plots", filename)
+    plt.savefig(save_path, bbox_inches="tight", dpi=300)
+    plt.close()
 
     avg_importance = global_importance.mean(axis=0)
     idx_least_important_feature = np.argmin(avg_importance)
@@ -83,7 +93,15 @@ def explain_predictions_test(X_train, X_test, model, features):
     global_importance = global_importance.mean(axis=2) # average over timesteps
     test_features_only = test_np.reshape(test_np.shape[0], n_features, seq_len).mean(axis=2)
 
-    shap.summary_plot(global_importance, test_features_only, feature_names=features)
+    shap.summary_plot(global_importance, test_features_only, feature_names=features, show=False)
+
+    title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
+    plt.title(title)
+    filename = f"shap_{n_features}_features_{seq_len}_steps.png"
+    os.makedirs("SHAP_plots", exist_ok=True)
+    save_path = os.path.join("SHAP_plots", filename)
+    plt.savefig(save_path, bbox_inches="tight", dpi=300)
+    plt.close()
 
     avg_importance = global_importance.mean(axis=0)
     idx_least_important_feature = np.argmin(avg_importance)

@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
         num_features = len(data_loader.features)
 
+        # TODO REMOVE
         for n in range(0, num_features-2):
             data_loader.remove_feature(data_loader.get_feature_at_index(0))
         num_features = len(data_loader.features)
@@ -43,6 +44,7 @@ if __name__ == "__main__":
             accuracy[s].append(rmse)
 
             # Feature selection with SHAP
+            # TODO REMOVE TEST
             discarded_feature = explain_predictions_test(
                 X_train=data_loader.train_loader,
                 X_test=data_loader.test_loader,
