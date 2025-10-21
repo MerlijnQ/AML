@@ -43,8 +43,11 @@ if __name__ == "__main__":
             accuracy[s].append(rmse)
 
             # Feature selection with SHAP
-            discarded_feature_index = explain_predictions_test(data_loader.train_loader, data_loader.test_loader, model)
-            discarded_feature = data_loader.get_feature_at_index(discarded_feature_index)
+            discarded_feature = explain_predictions_test(
+                X_train=data_loader.train_loader,
+                X_test=data_loader.test_loader,
+                model=model,
+                features=data_loader.features)
 
             # Store discarded feature
             discarded[s].append(discarded_feature)

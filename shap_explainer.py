@@ -28,7 +28,7 @@ def get_samples_from_loader(loader, n_samples):
     return torch.cat(samples, dim=0)[:n_samples]
 
 # Explain the predictions and return the least important feature
-def explain_predictions(X_train, X_test, model):
+def explain_predictions(X_train, X_test, model, features):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     background_distribution = get_samples_from_loader(X_train, 100).to(device=device, dtype=torch.float32)
@@ -47,16 +47,20 @@ def explain_predictions(X_train, X_test, model):
     shap_values = shap_explainer.shap_values(test_np)
 
     global_importance = np.abs(shap_values)
+    global_importance = global_importance.reshape(global_importance.shape[0], n_features, seq_len)
+    global_importance = global_importance.mean(axis=2) # average over timesteps
+    test_features_only = test_np.reshape(test_np.shape[0], n_features, seq_len).mean(axis=2)
 
-    shap.summary_plot(global_importance, test_np)
+    shap.summary_plot(global_importance, test_features_only, feature_names=features)
 
     avg_importance = global_importance.mean(axis=0)
     idx_least_important_feature = np.argmin(avg_importance)
+    least_important_feature = features[idx_least_important_feature]
 
-    return idx_least_important_feature
+    return least_important_feature
 
 # Test function with small sample sizes that works on Apple Silicon
-def explain_predictions_test(X_train, X_test, model):
+def explain_predictions_test(X_train, X_test, model, features):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     background_distribution = get_samples_from_loader(X_train, 1).to(device=device, dtype=torch.float32)
@@ -75,10 +79,14 @@ def explain_predictions_test(X_train, X_test, model):
     shap_values = shap_explainer.shap_values(test_np)
 
     global_importance = np.abs(shap_values)
+    global_importance = global_importance.reshape(global_importance.shape[0], n_features, seq_len)
+    global_importance = global_importance.mean(axis=2) # average over timesteps
+    test_features_only = test_np.reshape(test_np.shape[0], n_features, seq_len).mean(axis=2)
 
-    shap.summary_plot(global_importance, test_np)
+    shap.summary_plot(global_importance, test_features_only, feature_names=features)
 
     avg_importance = global_importance.mean(axis=0)
     idx_least_important_feature = np.argmin(avg_importance)
+    least_important_feature = features[idx_least_important_feature]
 
-    return idx_least_important_feature
+    return least_important_feature
