@@ -17,7 +17,7 @@ def shap_predict(model, X, input_shape):
     torch.manual_seed(0)
 
     with torch.no_grad():
-        pred = model(X)[0]
+        pred = model(X)
 
     return pred.detach().cpu().numpy()
 

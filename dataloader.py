@@ -17,6 +17,7 @@ class DataLoaderTimeSeries:
         df_one_hot_encoded = one_hot_encode("Holiday_ID", self._dataset["Holiday_ID"])
         self._dataset = pd.concat([self._dataset, df_one_hot_encoded], axis=1)
 
+        self._features = list(self._dataset.columns.values)
         self._features.remove("datetime")
         self._features.remove("Holiday_ID")
         self._initialize_dataset()
