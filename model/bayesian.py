@@ -6,11 +6,11 @@ class bayesianModule(nn.Module):
     def __init__(self, N_features):
         super().__init__()
     
-        self.W_mu = nn.Parameter(torch.zeros(N_features, 1))
-        self.W_sigma = nn.Parameter(torch.full((N_features, 1), -0.5))
+        self.W_mu = nn.Parameter(torch.zeros(1, N_features))
+        self.W_sigma = nn.Parameter(torch.full((1, N_features), -5.0))
 
         self.b_mu = nn.Parameter(torch.zeros(1))
-        self.b_sigma = nn.Parameter(torch.full((1, ), -0.5))
+        self.b_sigma = nn.Parameter(torch.full((1, ), -5.0))
 
     def forward(self, X):
         # ensure sigma is always positive (as STD is by definition > 0).
@@ -28,4 +28,6 @@ class bayesianModule(nn.Module):
         W = self.W_mu + W_sigma * eps_w
         b = self.b_mu + b_sigma * eps_b
 
-        return F.linear(X, W, b)
+        out = F.linear(X, W, b)
+        out = torch.clamp(out, -1e6, 1e6)
+        return out
