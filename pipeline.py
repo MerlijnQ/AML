@@ -25,14 +25,14 @@ if __name__ == "__main__":
 
         num_features = len(data_loader.features)
 
-        # TODO REMOVE
-        for n in range(0, num_features-10):
-            data_loader.remove_feature(data_loader.get_feature_at_index(-1))
-        num_features = len(data_loader.features)
-        
-        print(data_loader.features)
+        # For testing
+        # for n in range(0, num_features-5):
+        #     data_loader.remove_feature(data_loader.get_feature_at_index(0))
+        # num_features = len(data_loader.features)
+        # print(data_loader.features)
 
-        for n in range(num_features, 0, -1):
+        n = num_features
+        while n > 0:
             print(f"Number of features: {n}")
 
             # Create model
@@ -54,13 +54,12 @@ if __name__ == "__main__":
             model_data["accuracy"][s].append(rmse)
 
             # Feature selection with SHAP
-            # TODO SET APPLE SILICON TO FALSE
             current_shap_values, discarded_feature = explain_predictions(
                 X_train=data_loader.train_loader,
                 X_test=data_loader.test_loader,
                 model=model,
                 features=data_loader.features,
-                apple_silicon=True
+                apple_silicon=False
             )
 
             # Store shap values
@@ -71,7 +70,13 @@ if __name__ == "__main__":
 
             # Remove the feature from the dataloader
             print(f"Discarding feature: {discarded_feature}")
-            data_loader.remove_feature(discarded_feature)
+            if discarded_feature == "hour":
+                data_loader.remove_feature("hour_sin")
+                data_loader.remove_feature("hour_cos")
+                n-=2
+            else:
+                data_loader.remove_feature(discarded_feature)
+                n-=1
 
             with open(file_name, "w") as f:
                 json.dump(model_data, f, indent=4)

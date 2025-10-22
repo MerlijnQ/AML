@@ -61,7 +61,7 @@ class create_ensemble():
         super().__init__()
         seeds = [5, 8, 64, 32, 5]
         self.models = []
-        trainer = TrainTest(5)
+        trainer = TrainTest()
         for seed in seeds:
             torch.manual_seed(seed)
             new_model = DHBCNN(n_features, window_size)
