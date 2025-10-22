@@ -26,16 +26,11 @@ if __name__ == "__main__":
         num_features = len(data_loader.features)
 
         # TODO REMOVE
-<<<<<<< HEAD
         for n in range(0, num_features-10):
             data_loader.remove_feature(data_loader.get_feature_at_index(-1))
+        num_features = len(data_loader.features)
         
         print(data_loader.features)
-=======
-        for n in range(0, num_features-2):
-            data_loader.remove_feature(data_loader.get_feature_at_index(-1))
->>>>>>> refs/remotes/origin/Shap
-        num_features = len(data_loader.features)
 
         for n in range(num_features, 0, -1):
             print(f"Number of features: {n}")
