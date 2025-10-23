@@ -6,10 +6,10 @@ from model.train import TrainTest
 class ensemble_DHBCNN(nn.Module):
     def __init__(self, models):
         super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.models = nn.ModuleList(models)
         for model in models:
             model.eval()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(self, X):
         mus = []
@@ -64,7 +64,7 @@ class create_ensemble():
         trainer = TrainTest()
         for seed in seeds:
             torch.manual_seed(seed)
-            new_model = DHBCNN(n_features, window_size)
+            new_model = DHBCNN(n_features, window_size).to(self.device) #Make sure to intialize a new model on the right device for each M
             trained_model = trainer.train(new_model, train_loader, val_loader)
             self.models.append(trained_model)
 
