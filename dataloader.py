@@ -2,7 +2,7 @@ from torch.utils.data import DataLoader
 import pandas as pd
 import numpy as np
 from dataset import TimeSeriesDataset
-from scaler import MinMaxScaler, ZScoreNormalization
+from scaler import ZScoreNormalization
 from one_hot_encode import one_hot_encode
 
 DISCRETE_FEATURES = ['holiday', 'school', 'Holiday_ID1', 'Holiday_ID2', 'Holiday_ID3', 'Holiday_ID4', \
