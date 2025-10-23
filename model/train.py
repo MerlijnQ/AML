@@ -5,11 +5,12 @@ import torch
 
 
 class TrainTest():
-    def __init__(self, max_epochs=30):
+    def __init__(self, max_epochs=100, warm_up=10):
         self.max_epochs = max_epochs
         # self.criterion = customELBO(max_epochs)
         self.criterion = gnll() 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.warm_up = warm_up
 
     def test(self, model:DHBCNN, val_loader:DataLoader, epoch):
         model.eval()
@@ -25,7 +26,7 @@ class TrainTest():
                 if torch.isnan(sigma).any():
                     print("NaN detected in sigma!")
                     break
-                loss = self.criterion(mu, sigma, y)
+                loss = self.criterion(mu, sigma, y, epoch)
                 if torch.isnan(loss):
                     print("Warning: NaN detected in validation loss")
                 if torch.isinf(loss):
@@ -50,20 +51,21 @@ class TrainTest():
                 X, y = X.to(self.device), y.to(self.device)
                 optimizer.zero_grad()
                 mu, sigma = model(X)
-                loss = self.criterion(mu, sigma, y)
+                loss = self.criterion(mu, sigma, y, epoch)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) #Clip to prevent BOOM!
                 optimizer.step()
             test_loss = self.test(model, val_loader, epoch)
 
-            if test_loss < best:
-                best = test_loss
-                no_improvement = 0
-                best_model = model.state_dict()
-            else:
-                no_improvement += 1
+            if not epoch < self.warm_up: #Only start early stopping after warm up and we only train on gnll
+                if test_loss < best:
+                    best = test_loss
+                    no_improvement = 0
+                    best_model = model.state_dict()
+                else:
+                    no_improvement += 1
 
-            if no_improvement == 5:
-                break
+                if no_improvement == 5:
+                    break
             model.load_state_dict(best_model)
         return model

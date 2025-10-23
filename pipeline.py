@@ -13,7 +13,7 @@ if __name__ == "__main__":
         "shap_values": [[],[],[]]
     }
 
-    window_sizes = [24, 48, 72]
+    window_sizes = [24, 48, 72, 120]
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_name = f"model_data_{timestamp}.json"

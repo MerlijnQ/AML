@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class customELBO(nn.Module):
-    def __init__(self, total_epochs=50):
+    def __init__(self, total_epochs=100):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.priors = {"mu_head": torch.tensor(1.0, device=self.device, dtype=torch.float32) ,
@@ -60,10 +60,17 @@ class customELBO(nn.Module):
         return gnll
     
 class gnll(nn.Module):
-    def __init__(self):
+    def __init__(self, warm_up=10):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.eps = 1e-6
+        self.warm_up = warm_up
+
+    def MSE(self, mu, y):
+        if mu.dim() == 2:
+            mu = mu.unsqueeze(-1)
+        rmse = torch.mean((mu - y) ** 2)
+        return rmse
         
     def GNLL(self, mu, sigma, y):
         # Ensure sigma is valid
@@ -77,6 +84,9 @@ class gnll(nn.Module):
         total = 0.5 * torch.log(2 * torch.pi * sigma**2) + ((mu - y)**2 / (2 * sigma**2 + self.eps))
         return total.mean()
     
-    def forward(self, mu, sigma, y):
+    def forward(self, mu, sigma, y, epoch):
         gnll = self.GNLL(mu, sigma, y)
+        mse = self.MSE(mu, y)
+        alpha = min(1.0, epoch / self.warm_up)
+        gnll = alpha * gnll + (1 - alpha) * mse
         return gnll
