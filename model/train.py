@@ -2,10 +2,11 @@ from model.loss import customELBO, gnll
 from model.model import DHBCNN
 from torch.utils.data import DataLoader
 import torch
+import copy
 
 
 class TrainTest():
-    def __init__(self, max_epochs=100, warm_up=10):
+    def __init__(self, max_epochs=50, warm_up=10):
         self.max_epochs = max_epochs
         # self.criterion = customELBO(max_epochs)
         self.criterion = gnll() 
@@ -61,11 +62,15 @@ class TrainTest():
                 if test_loss < best:
                     best = test_loss
                     no_improvement = 0
-                    best_model = model.state_dict()
+                    best_model = copy.deepcopy(model.state_dict())
                 else:
                     no_improvement += 1
 
                 if no_improvement == 5:
+                    print("Early stopping triggered")
                     break
+
+        if best_model is not None:
             model.load_state_dict(best_model)
+
         return model

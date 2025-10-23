@@ -3,6 +3,7 @@ from model.ensemble import create_ensemble
 from shap_explainer import explain_predictions
 from datetime import datetime
 import json
+import sys
 
 if __name__ == "__main__":
     model_data = {
@@ -13,7 +14,10 @@ if __name__ == "__main__":
         "shap_values": [[],[],[]]
     }
 
-    window_sizes = [24, 48, 72, 120]
+    #window_sizes = [24, 48, 72, 120]
+
+    args = sys.argv[1:]
+    window_sizes = [int(args[0])]
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_name = f"model_data_{timestamp}.json"
@@ -40,12 +44,13 @@ if __name__ == "__main__":
                 n,
                 window_sizes[s],
                 data_loader.train_loader,
-                data_loader.validation_loader
+                data_loader.validation_loader,
             )
             model = ensemble_builder.get_ensemble_model() # Model returns rmse, epistemic, aleatoric on prediction
 
             # Evaluate model
-            rmse, epi, alea = model.evaluate(data_loader.test_loader)
+            # rmse, epi, alea = model.evaluate(data_loader.test_loader)
+            rmse, epi, alea = model.evaluate(data_loader) #pass entire object to rescale for rmse calculation
             print(f"RMSE: {rmse}, epistemic: {epi}, aleatoric: {alea}")
 
             # Store uncertainties and accuracy
@@ -70,6 +75,8 @@ if __name__ == "__main__":
 
             # Remove the feature from the dataloader
             print(f"Discarding feature: {discarded_feature}")
+            print("data: {}".format(model_data))
+
             if discarded_feature == "hour":
                 data_loader.remove_feature("hour_sin")
                 data_loader.remove_feature("hour_cos")
@@ -78,7 +85,7 @@ if __name__ == "__main__":
                 data_loader.remove_feature(discarded_feature)
                 n-=1
 
-            with open(file_name, "w") as f:
+            with open(file_name, f"w_{window_sizes[s]}.json") as f:
                 json.dump(model_data, f, indent=4)
 
     # figures = make figure(uncertainty, Accuracy, Discarded)

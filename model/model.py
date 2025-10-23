@@ -35,10 +35,13 @@ class DHBCNN(nn.Module):
         
         self.mu = nn.Linear(n_channels, 1)
         
-        #Initialize sigma to be 1: (1 + softplus(0) + eps)
+        #Initialize sigma to be 1: (softplus(math.log(math.e - 1)) + eps)
         self.sigma = nn.Linear(n_channels, 1)
-        nn.init.constant_(self.sigma.bias, 0.0)     # so elu(0) = 0
-        nn.init.normal_(self.sigma.weight, 0, 1e-4) #Initialize weights close to zero to prevent big initial sigma and potential instabilities
+        nn.init.constant_(self.sigma.bias, math.log(math.e - 1))  # ≈ 1.0 after softplus
+        nn.init.normal_(self.sigma.weight, 0, 1e-4)  #Initialize weights close to zero to prevent big initial sigma and potential instabilities
+
+        # nn.init.constant_(self.sigma.bias, 0.0)     # so elu(0) = 0
+        # nn.init.normal_(self.sigma.weight, 0, 1e-4) #Initialize weights close to zero to prevent big initial sigma and potential instabilities
 
         # Initialize weights
         self._init_weights()
@@ -53,8 +56,9 @@ class DHBCNN(nn.Module):
     def sigma_head(self, X):
         X = self.sigma(X)
         #We need to following trick to prevent extreme values that we cannot use. I.e. it stabilizes. Derived from: https://arxiv.org/pdf/2012.14389
-        sigma = 1 + F.elu(X) + self.eps 
-        sigma = torch.clamp(sigma, min=self.eps)
+        # sigma = 1 + F.elu(X) + self.eps 
+        # sigma = torch.clamp(sigma, min=self.eps)
+        sigma = F.softplus(X) + self.eps
         return sigma
     
     def feature_extractor(self, X):
