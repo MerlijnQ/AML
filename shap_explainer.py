@@ -48,17 +48,24 @@ def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
     background_np = background_distribution.view(background_distribution.size(0), -1).cpu().numpy()
     test_np = test_tensor.view(test_tensor.size(0), -1).cpu().numpy()
 
+    device = next(model.parameters()).device
+    
     if not apple_silicon:
         shap_explainer = shap.GradientExplainer(
-            model=lambda x: shap_predict(model, x, input_shape),
-            data=background_np
+            model=model,
+            data=background_distribution.to(device=device, dtype=torch.float32)
         )
+        shap_values = shap_explainer.shap_values(test_tensor.to(device=device, dtype=torch.float32))
+
     else:
         shap_explainer = shap.KernelExplainer(
             model=lambda x: shap_predict(model, x, input_shape),
             data=background_np
         )
-    shap_values = shap_explainer.shap_values(test_np)
+        shap_values = shap_explainer.shap_values(test_np)
+
+    if isinstance(shap_values, torch.Tensor):
+        shap_values = shap_values.detach().cpu().numpy()
 
     global_importance = np.abs(shap_values)
     global_importance = global_importance.reshape(global_importance.shape[0], n_features, seq_len)

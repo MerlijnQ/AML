@@ -16,6 +16,8 @@ class DataLoaderTimeSeries:
         self._input_window = input_window
         self._output_window = output_window
         self._batch_size = batch_size
+        self.eps = 1e-8
+
         self._scaler = ZScoreNormalization()
 
         self._dataset = self._get_dataset()
@@ -31,8 +33,8 @@ class DataLoaderTimeSeries:
         self._features = list(self._dataset.columns.values)
         self._features.remove("datetime")
         self._features.remove("Holiday_ID")
+
         self._initialize_dataset()
-        self.eps= 1e-8
 
     def _get_dataset(self):
         path_dataset = "dataset/continuous dataset.csv"
@@ -59,7 +61,7 @@ class DataLoaderTimeSeries:
     def _scale_target_feature(self):
         y_train = self._training._y
         self.target_mean = y_train.mean().item()
-        self.target_std = y_train.item().std().item()
+        self.target_std = y_train.std().item()
 
         self._training._y = (self._training._y - self.target_mean) / (self.target_std + self.eps)
         self._validation._y = (self._validation._y - self.target_mean) / (self.target_std + self.eps)

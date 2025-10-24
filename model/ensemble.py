@@ -25,6 +25,10 @@ class ensemble_DHBCNN(nn.Module):
         sigmas = torch.stack(sigmas, dim=0)
 
         prediction = mus.mean(dim=0)
+
+        # if prediction.dim() > 1 and prediction.shape[1] == 1:
+        #     prediction = prediction.squeeze(1)
+
         return prediction
 
     @torch.no_grad

@@ -19,8 +19,8 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     window_sizes = [int(args[0])]
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"model_data_{timestamp}.json"
+    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # file_name = f"model_data_{timestamp}.json"
 
     for s in range(len(window_sizes)):
         print(f"Window size: {window_sizes[s]}")
@@ -85,7 +85,7 @@ if __name__ == "__main__":
                 data_loader.remove_feature(discarded_feature)
                 n-=1
 
-            with open(file_name, f"w_{window_sizes[s]}.json") as f:
-                json.dump(model_data, f, indent=4)
+    with open(f"results_size_{window_sizes[s]}.json", "w") as f:
+        json.dump(model_data, f, indent=4)
 
     # figures = make figure(uncertainty, Accuracy, Discarded)
