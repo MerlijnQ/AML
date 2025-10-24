@@ -39,8 +39,8 @@ def get_samples_from_loader(loader, n_samples):
 def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    background_distribution = get_samples_from_loader(X_train, 2).to(device=device, dtype=torch.float32)
-    test_tensor = get_samples_from_loader(X_test, 1).to(device=device, dtype=torch.float32)
+    background_distribution = get_samples_from_loader(X_train, 100).to(device=device, dtype=torch.float32)
+    test_tensor = get_samples_from_loader(X_test, 10).to(device=device, dtype=torch.float32)
 
     _, n_features, seq_len = background_distribution.shape
     input_shape = (n_features, seq_len)
