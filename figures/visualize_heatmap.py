@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 
-with open('model_data.json', 'r') as f:
+with open('results_size_24.json', 'r') as f:
     results = json.load(f)
 
 features = results["discarded"]
