@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+import math
 
 class customELBO(nn.Module):
-    def __init__(self, total_epochs=50):
+    def __init__(self, total_epochs=150):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.priors = {"mu_head": torch.tensor(1.0, device=self.device, dtype=torch.float32) ,
@@ -60,10 +61,17 @@ class customELBO(nn.Module):
         return gnll
     
 class gnll(nn.Module):
-    def __init__(self):
+    def __init__(self, warm_up=10):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.eps = 1e-6
+        self.warm_up = warm_up
+
+    def MSE(self, mu, y):
+        if mu.dim() == 2:
+            mu = mu.unsqueeze(-1)
+        mse = torch.mean((mu - y) ** 2)
+        return mse
         
     def GNLL(self, mu, sigma, y):
         # Ensure sigma is valid
@@ -74,9 +82,15 @@ class gnll(nn.Module):
             sigma = sigma.unsqueeze(-1)
             #We get [N, C] but as C is 1 we can lose it
 
-        total = 0.5 * torch.log(2 * torch.pi * sigma**2) + ((mu - y)**2 / (2 * sigma**2 + self.eps))
+        total = 0.5 * torch.log(2 * torch.pi * (sigma**2 + self.eps)) + ((mu - y)**2 / (2 * (sigma**2 + self.eps)))
         return total.mean()
     
-    def forward(self, mu, sigma, y):
+    def forward(self, mu, sigma, y, epoch):
         gnll = self.GNLL(mu, sigma, y)
+        mse = self.MSE(mu, y)
+        alpha = min(1.0, epoch / self.warm_up) #Linear warm-up
+        # t = min(epoch / self.warm_up, 1.0)
+        # alpha = 0.5 * (1 - math.cos(math.pi * t)) #Cos warm-up (increases faster later on)
+        gnll = alpha * gnll + (1 - alpha) * mse
+        gnll = gnll + 1e-5 * (mu**2).mean() #Regularization to prevent exploding mu (very small effect) l2
         return gnll

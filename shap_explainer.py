@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import pandas as pd
 
 # Wrapper for the predictions because SHAP requires the model to be deterministic
 def shap_predict(model, X, input_shape):
@@ -30,6 +31,9 @@ def get_samples_from_loader(loader, n_samples):
     return torch.cat(samples, dim=0)[:n_samples]
 
 # Function that explain the predictions and returns an array with features and shap values and least important feature.
+# SHAP values for "hour_cos" and "hour_sin" are computed separately, and then averaged in the new "hour" feature.
+# SHAP values for "hour_cos" and "hour_sin" are returned separately, but the least important feature is renamed "hour".
+#
 # NOTE: Only set apple_silicon=True if testing SHAP on a device with Apple Silicon.
 #       This fixes a running error, but it will return different SHAP values.
 def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
@@ -44,17 +48,24 @@ def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
     background_np = background_distribution.view(background_distribution.size(0), -1).cpu().numpy()
     test_np = test_tensor.view(test_tensor.size(0), -1).cpu().numpy()
 
+    device = next(model.parameters()).device
+    
     if not apple_silicon:
         shap_explainer = shap.GradientExplainer(
-            model=lambda x: shap_predict(model, x, input_shape),
-            data=background_np
+            model=model,
+            data=background_distribution.to(device=device, dtype=torch.float32)
         )
+        shap_values = shap_explainer.shap_values(test_tensor.to(device=device, dtype=torch.float32))
+
     else:
         shap_explainer = shap.KernelExplainer(
             model=lambda x: shap_predict(model, x, input_shape),
             data=background_np
         )
-    shap_values = shap_explainer.shap_values(test_np)
+        shap_values = shap_explainer.shap_values(test_np)
+
+    if isinstance(shap_values, torch.Tensor):
+        shap_values = shap_values.detach().cpu().numpy()
 
     global_importance = np.abs(shap_values)
     global_importance = global_importance.reshape(global_importance.shape[0], n_features, seq_len)
@@ -67,20 +78,46 @@ def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
         feature_names=features
     )
 
-    shap.plots.bar(shap_values_obj, max_display=n_features, show=False)
+    # Combine SHAP values of hour into one
+    if "hour_sin" in shap_values_obj.feature_names and "hour_cos" in shap_values_obj.feature_names:
+        values_df = pd.DataFrame(shap_values_obj.values, columns=shap_values_obj.feature_names)
+        values_df["hour"] = values_df[["hour_sin", "hour_cos"]].mean(axis=1)
+        values_df = values_df.drop(columns=["hour_sin", "hour_cos"])
 
-    title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
-    plt.title(title)
-    filename = f"shap_{n_features}_features_{seq_len}_steps.png"
-    os.makedirs("SHAP_plots", exist_ok=True)
-    save_path = os.path.join("SHAP_plots", filename)
-    plt.savefig(save_path, bbox_inches="tight", dpi=300)
-    plt.close()
+        data_df = pd.DataFrame(shap_values_obj.data, columns=shap_values_obj.feature_names)
+        data_df["hour"] = data_df[["hour_sin", "hour_cos"]].mean(axis=1)
+        data_df = data_df.drop(columns=["hour_sin", "hour_cos"])
 
+        shap_values_combined = shap.Explanation(
+            values=values_df.values,
+            base_values=shap_values_obj.base_values,
+            data=data_df.values,
+            feature_names=values_df.columns.tolist()
+        )
+
+    # # Plot original features
+    # shap.plots.bar(shap_values_obj, max_display=n_features, show=False)
+
+    # title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
+    # plt.title(title)
+    # filename = f"shap_{n_features}_features_{seq_len}_steps.png"
+    # os.makedirs("SHAP_plots", exist_ok=True)
+    # save_path = os.path.join("SHAP_plots", filename)
+    # plt.savefig(save_path, bbox_inches="tight", dpi=300)
+    # plt.close()
+
+    # Calculate original SHAP values tuples
     avg_importance = global_importance.mean(axis=0)
-    idx_least_important_feature = np.argmin(avg_importance)
-    least_important_feature = features[idx_least_important_feature]
-
     feature_importance_tuples = [(feat, float(val)) for feat, val in zip(features, avg_importance)]
+
+    # Get the least important feature (can return hour if the average of hour_cos and hour_sin is the lowest)
+    if "hour_sin" in shap_values_obj.feature_names and "hour_cos" in shap_values_obj.feature_names:
+        combined_avg_importance = np.mean(np.abs(shap_values_combined.values), axis=0)
+        combined_feature_names = shap_values_combined.feature_names
+        idx_least_important_feature = np.argmin(combined_avg_importance)
+        least_important_feature = combined_feature_names[idx_least_important_feature]
+    else:
+        idx_least_important_feature = np.argmin(avg_importance)
+        least_important_feature = features[idx_least_important_feature]
 
     return feature_importance_tuples, least_important_feature

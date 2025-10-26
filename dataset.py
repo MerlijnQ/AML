@@ -8,7 +8,7 @@ FEATURES = ['nat_demand', 'T2M_toc', 'QV2M_toc', 'TQL_toc', 'W2M_toc',
        'TQL_dav', 'W2M_dav', 'Holiday_ID', 'holiday', 'school']
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, dataset, input_window: {24,48,72}, output_window = 24, features:list=FEATURES):
+    def __init__(self, dataset, input_window: {24,48,72,120}, output_window = 24, features:list=FEATURES):
         self._orig_dataset = dataset
         self._input_window = input_window
         self._output_window = output_window

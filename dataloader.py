@@ -2,7 +2,7 @@ from torch.utils.data import DataLoader
 import pandas as pd
 import numpy as np
 from dataset import TimeSeriesDataset
-from scaler import MinMaxScaler, ZScoreNormalization
+from scaler import ZScoreNormalization
 from one_hot_encode import one_hot_encode
 
 DISCRETE_FEATURES = ['holiday', 'school', 'Holiday_ID1', 'Holiday_ID2', 'Holiday_ID3', 'Holiday_ID4', \
@@ -16,6 +16,8 @@ class DataLoaderTimeSeries:
         self._input_window = input_window
         self._output_window = output_window
         self._batch_size = batch_size
+        self.eps = 1e-8
+
         self._scaler = ZScoreNormalization()
 
         self._dataset = self._get_dataset()
@@ -31,6 +33,7 @@ class DataLoaderTimeSeries:
         self._features = list(self._dataset.columns.values)
         self._features.remove("datetime")
         self._features.remove("Holiday_ID")
+
         self._initialize_dataset()
 
     def _get_dataset(self):
@@ -41,6 +44,7 @@ class DataLoaderTimeSeries:
         dataset = dataset[dataset["datetime"] <= "2020-03-01 00:00:00"]
         dataset["datetime"] = pd.to_datetime(dataset["datetime"])
         return dataset
+
     
     def _initialize_dataset(self):
         dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, self._features)
@@ -50,9 +54,23 @@ class DataLoaderTimeSeries:
         self._scale_input_features()
         self._update_loaders()
 
+    def _inverse_transform_target(self, y_scaled):
+        """Convert normalized target (y_scaled) back to original units."""
+        return y_scaled * (self.target_std + self.eps) + self.target_mean
+
+    def _scale_target_feature(self):
+        y_train = self._training._y
+        self.target_mean = y_train.mean().item()
+        self.target_std = y_train.std().item()
+
+        self._training._y = (self._training._y - self.target_mean) / (self.target_std + self.eps)
+        self._validation._y = (self._validation._y - self.target_mean) / (self.target_std + self.eps)
+        self._test._y = (self._test._y - self.target_mean) / (self.target_std + self.eps)
+
     def _scale_input_features(self):
         n_discrete_features = len(set(self._features) & set(DISCRETE_FEATURES))
         self._scaler.fit(self._training.scalable_data,n_discrete_features)
+        self._scale_target_feature()
         self._training.transform(self._scaler,n_discrete_features)
         self._validation.transform(self._scaler,n_discrete_features)
         self._test.transform(self._scaler,n_discrete_features)

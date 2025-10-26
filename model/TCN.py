@@ -6,7 +6,7 @@ class conv1D(nn.Module):
         super().__init__()
         self.padding = (k-1)*dilation
 
-        self.conv = nn.utils.weight_norm(
+        self.conv = nn.utils.parametrizations.weight_norm(
             nn.Conv1d(
             channels_in, channels_out, k, stride=1, dilation=dilation)
             )
@@ -47,4 +47,4 @@ class TCNModule(nn.Module):
         if self.resid:
             X_resid = self.conv3(X_resid)
         X = X + X_resid
-        return X
+        return F.relu(X)
