@@ -1,4 +1,4 @@
-from model.loss import customELBO, gnll
+from model.loss import gnll
 from model.model import DHBCNN
 from torch.utils.data import DataLoader
 import torch
@@ -6,7 +6,7 @@ import copy
 
 
 class TrainTest():
-    def __init__(self, max_epochs=50, warm_up=10):
+    def __init__(self, max_epochs=100, warm_up=10):
         self.max_epochs = max_epochs
         # self.criterion = customELBO(max_epochs)
         self.criterion = gnll() 
@@ -42,6 +42,7 @@ class TrainTest():
         model.to(self.device)
         best_model = None
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.max_epochs) #This makes sure the lr goes down with time
 
         best = float("inf")
         no_improvement = 0
@@ -56,6 +57,8 @@ class TrainTest():
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) #Clip to prevent BOOM!
                 optimizer.step()
+
+            scheduler.step()
             test_loss = self.test(model, val_loader, epoch)
 
             if not epoch < self.warm_up: #Only start early stopping after warm up and we only train on gnll

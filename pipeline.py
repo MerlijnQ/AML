@@ -84,7 +84,7 @@ if __name__ == "__main__":
             else:
                 data_loader.remove_feature(discarded_feature)
                 n-=1
-
+    
     with open(f"results_size_{window_sizes[s]}.json", "w") as f:
         json.dump(model_data, f, indent=4)
 

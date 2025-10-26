@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+import math
 
 class customELBO(nn.Module):
-    def __init__(self, total_epochs=50):
+    def __init__(self, total_epochs=150):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.priors = {"mu_head": torch.tensor(1.0, device=self.device, dtype=torch.float32) ,
@@ -87,6 +88,9 @@ class gnll(nn.Module):
     def forward(self, mu, sigma, y, epoch):
         gnll = self.GNLL(mu, sigma, y)
         mse = self.MSE(mu, y)
-        alpha = min(1.0, epoch / self.warm_up)
+        alpha = min(1.0, epoch / self.warm_up) #Linear warm-up
+        # t = min(epoch / self.warm_up, 1.0)
+        # alpha = 0.5 * (1 - math.cos(math.pi * t)) #Cos warm-up (increases faster later on)
         gnll = alpha * gnll + (1 - alpha) * mse
+        gnll = gnll + 1e-5 * (mu**2).mean() #Regularization to prevent exploding mu (very small effect) l2
         return gnll

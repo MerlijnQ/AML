@@ -82,10 +82,11 @@ class create_ensemble():
     def __init__(self, n_features, window_size, train_loader, val_loader):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        seeds = [5, 8, 64, 32, 42]
+        seeds = [5, 8, 64, 32, 42, 83, 27]
         self.models = []
         trainer = TrainTest()
         for seed in seeds:
+            print("Training model with seed: {}".format(seed))
             torch.manual_seed(seed)
             np.random.seed(seed)
             random.seed(seed)

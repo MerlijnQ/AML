@@ -95,16 +95,16 @@ def explain_predictions(X_train, X_test, model, features, apple_silicon=False):
             feature_names=values_df.columns.tolist()
         )
 
-    # Plot original features
-    shap.plots.bar(shap_values_obj, max_display=n_features, show=False)
+    # # Plot original features
+    # shap.plots.bar(shap_values_obj, max_display=n_features, show=False)
 
-    title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
-    plt.title(title)
-    filename = f"shap_{n_features}_features_{seq_len}_steps.png"
-    os.makedirs("SHAP_plots", exist_ok=True)
-    save_path = os.path.join("SHAP_plots", filename)
-    plt.savefig(save_path, bbox_inches="tight", dpi=300)
-    plt.close()
+    # title = f"SHAP Summary ({n_features} features × {seq_len} timesteps)"
+    # plt.title(title)
+    # filename = f"shap_{n_features}_features_{seq_len}_steps.png"
+    # os.makedirs("SHAP_plots", exist_ok=True)
+    # save_path = os.path.join("SHAP_plots", filename)
+    # plt.savefig(save_path, bbox_inches="tight", dpi=300)
+    # plt.close()
 
     # Calculate original SHAP values tuples
     avg_importance = global_importance.mean(axis=0)
