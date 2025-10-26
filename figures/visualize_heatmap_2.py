@@ -9,10 +9,6 @@ import seaborn as sns
 class HeatMap:
     def __init__(self, data_file_name):
         """
-        Initialize the tracker with a list of feature snapshots.
-
-        Parameters:
-        - example: list of lists of [feature_name, value] pairs
         """
         self.data = self._load_data(data_file_name)
         self.feature_sets = self._get_feature_sets()
@@ -36,7 +32,6 @@ class HeatMap:
                 if feature_name in run_dict:
                     # add the value to the heatmap
                     heatmap[feature_idx][run_nr] = run_dict[feature_name]
-        
         return heatmap
     
     def _load_data(self, file_name):
@@ -70,18 +65,19 @@ class HeatMap:
         return disappearance_order
     
     def plot_heatmap(self, subtitle):
-        # annot_labels = [
-        #     ["" if val == float('NaN') else round(val, 4) for val in row]
-        #     for row in self.heatmap
-        # ]
-        # sns.heatmap(heatmap_data, annot=True, cmap="coolwarm", yticklabels=labels)
-        # sns.heatmap(self.heatmap, annot=annot_labels, fmt="", cmap="coolwarm", cbar=False, yticklabels=self.labels)
-        plt.figure(figsize=(16, 13))  # width x height in inches
+        # create figure
+        plt.figure(figsize=(16, 13))
+
+        # create heatmap
         sns.heatmap(self.heatmap, annot=False, cmap="coolwarm", cbar=True, yticklabels=self.labels)
+
+        # figure config
         plt.xticks(ticks=[x + 0.5 for x in range(self.nr_features)], labels=list(range(self.nr_features, 0, -1)))
         plt.xlabel("nr_features")
         plt.ylabel("features")
         save_directory = 'heatmap'
+
+        # save figure
         os.makedirs(save_directory, exist_ok=True)
         plt.savefig(save_directory + "/heatmap_" + subtitle + ".pdf")
         # plt.show()
