@@ -16,6 +16,7 @@ class UncertaintyPlotter:
         self.nr_features = len(self.features[0])
         self.nr_window_sizes = 1
         self.nr_features_values = [x for x in range(self.nr_features, 0, -1)]
+        
 
     def _load_results(self):
         """Load JSON results data from file."""
@@ -35,9 +36,9 @@ class UncertaintyPlotter:
         """
         plt.figure(figsize=(10, 5))
         for y_values, label, color in zip(y_values_list, labels, colors):
-            plt.plot(x_values, y_values, label=label, color=color, marker='o')
+            plt.plot(x_values, y_values, label=label, color=color)
         plt.xlabel("Number of features")
-        plt.ylabel("Value")
+        plt.ylabel("RMSE")
         plt.xticks(x_values)
         plt.gca().invert_xaxis()
         plt.xlim(x_values[0], x_values[-1])
@@ -99,14 +100,3 @@ if __name__ == "__main__":
     # Window size 120
     plotter = UncertaintyPlotter(results_file="results_size_120.json", window_plot_name="window_120")
     plotter.generate_plots()
-
-
-# # Call for Aleatoric and Epistemic plot
-# for i in range(nr_window_sizes):
-#     plot_and_save(
-#         nr_features_values,
-#         [alaetoric_uncertainty[i], epistemic_uncertainty[i]],
-#         ["Aleatoric Uncertainty", "Epistemic Uncertainty"],
-#         ['#ff7f0e', '#2ca02c'],
-#         "Uncertainty_plot_" + str(i) + ".pdf",
-#     )

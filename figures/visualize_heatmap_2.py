@@ -5,6 +5,7 @@ import json
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+import numpy as np
 
 class HeatMap:
     def __init__(self, data_file_name):
@@ -15,6 +16,8 @@ class HeatMap:
         self.labels = self._get_feature_importance_order()
         self.nr_features = len(self.labels)
         self.heatmap = self._create_heatmap_data()
+        self.annot_labels = self._get_annot_labels()
+
         
     def _create_heatmap_data(self):
         # structure heatmap:
@@ -32,12 +35,62 @@ class HeatMap:
                 if feature_name in run_dict:
                     # add the value to the heatmap
                     heatmap[feature_idx][run_nr] = run_dict[feature_name]
+
         return heatmap
     
     def _load_data(self, file_name):
         with open('results_size_24.json', 'r') as f:
             results = json.load(f)
-        return results["shap_values"][0]
+        heatmap_data = results["shap_values"][0]
+
+        # take hour_sin and hour_cos together. 
+        for run_idx, run in enumerate(heatmap_data):
+            new_run = []
+            hour_sin = float('NaN')
+            hour_cos = float('NaN')
+            for feature_idx, feature in enumerate(run):
+                if feature[0] == "hour_sin":
+                    hour_sin = feature[1]
+                elif feature[0] == "hour_cos":
+                    hour_cos = feature[1]
+                else:
+                    new_run.append(feature)
+            new_run.append(["hour_avg", np.nanmean([hour_sin, hour_cos])])
+            
+            heatmap_data[run_idx] = new_run               
+
+        return heatmap_data
+    
+    def _get_annot_labels(self):
+        holiday_conversion_dict = {
+            "Holiday_ID1": "New Year",
+            "Holiday_ID2": "Martyrs' Day",
+            "Holiday_ID3": "Carnival Saturday",
+            "Holiday_ID4": "Carnival Sunday",
+            "Holiday_ID5": "Carnival Monday",
+            "Holiday_ID6": "Carnival Tuesday",
+            "Holiday_ID7": "Ash Wednesday",
+            "Holiday_ID8": "Holy Thursday",
+            "Holiday_ID9": "Good Friday",
+            "Holiday_ID10": "Holy Saturday",
+            "Holiday_ID11": "Resurrection Sunday",
+            "Holiday_ID12": "Labor Day",
+            "Holiday_ID13": "Foundation of Old Panama",
+            "Holiday_ID14": "Separation of Panama from Colombia",
+            "Holiday_ID15": "Flag Day",
+            "Holiday_ID16": "Patriotic Commemoration in Colón city",
+            "Holiday_ID17": "First Cry of Independence",
+            "Holiday_ID18": "Independence of Panama from Spain",
+            "Holiday_ID19": "Mother's Day",
+            "Holiday_ID20": "Christmas Eve",
+            "Holiday_ID21": "Christmas",
+            "Holiday_ID22": "New Year's Eve"
+        }
+        annot_labels = self.labels
+        for label_idx, label in enumerate(self.labels):
+            if label in holiday_conversion_dict:
+                annot_labels[label_idx] = holiday_conversion_dict[label]
+        return annot_labels
     
     def _get_feature_sets(self):
         return [set(f[0] for f in step) for step in self.data]
@@ -69,7 +122,7 @@ class HeatMap:
         plt.figure(figsize=(16, 13))
 
         # create heatmap
-        sns.heatmap(self.heatmap, annot=False, cmap="coolwarm", cbar=True, yticklabels=self.labels)
+        sns.heatmap(self.heatmap, annot=False, cmap="coolwarm", cbar=True, yticklabels=self.annot_labels)
 
         # figure config
         plt.xticks(ticks=[x + 0.5 for x in range(self.nr_features)], labels=list(range(self.nr_features, 0, -1)))
@@ -80,7 +133,7 @@ class HeatMap:
         # save figure
         os.makedirs(save_directory, exist_ok=True)
         plt.savefig(save_directory + "/heatmap_" + subtitle + ".pdf")
-        # plt.show()
+        plt.show()
 
 
 if __name__ == "__main__":
