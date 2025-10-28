@@ -3,13 +3,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Read the CSV file
-df = pd.read_csv('dataset/continuous dataset.csv')
+df_orig = pd.read_csv('dataset/continuous dataset.csv')
 
 # Ensure datetime is parsed correctly until covid happened
-df['datetime'] = pd.to_datetime(df['datetime'])
-df = df.sort_values('datetime')
+df_orig['datetime'] = pd.to_datetime(df_orig['datetime'])
+df_orig = df_orig.sort_values('datetime')
 covid_start_date = pd.to_datetime('2020-03-01')
-df = df[df['datetime'] <= covid_start_date]
+df = df_orig[df_orig['datetime'] <= covid_start_date].copy()
 df['day_of_week'] = df['datetime'].dt.day_of_week
 
 # Hour of the day
@@ -147,7 +147,24 @@ def plot_holiday_IDs():
     save_fig('holiday_grid_loads')
     plt.show()
 
+def plot_full_grid_load():
+    # --- Plot 1: Full grid load ---
+    plt.figure(figsize=(12, 4))
+    plt.plot(df_orig['datetime'], df_orig["nat_demand"], label="nat demand", alpha=0.5)
+    plt.xlabel("Date")
+    plt.ylabel("National Demand [MWh]")
+    # plt.legend(loc='lower left')
+    # plt.grid(True)
+    plt.xlim(df_orig['datetime'].min(), df_orig['datetime'].max())
+    plt.ylim(-400, 1750)
+    plt.tight_layout()
+    plt.savefig('images/' + "full_grid_load" + ".pdf")
+    plt.show()
+    plt.close()
 
-plot_grid_load()
+
+# plot_grid_load()
 # plot_grid_load_intra_day()
 # plot_holiday_IDs()
+# plot_full_grid_load()
+print(df_orig['datetime'].max())
