@@ -55,7 +55,10 @@ class HeatMap:
                     hour_cos = feature[1]
                 else:
                     new_run.append(feature)
-            new_run.append(["hour_avg", np.nanmean([hour_sin, hour_cos])])
+            mean = np.nanmean([hour_sin, hour_cos])
+            if not np.isnan(mean):
+                new_run.append(["hour_avg", mean])
+
             
             heatmap_data[run_idx] = new_run               
 
