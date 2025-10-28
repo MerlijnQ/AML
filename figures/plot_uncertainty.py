@@ -23,7 +23,7 @@ class UncertaintyPlotter:
         with open(self.results_file, 'r') as f:
             return json.load(f)
 
-    def plot_and_save(self, x_values, y_values_list, labels, colors, filename, directory="uncertainty_plots"):
+    def plot_and_save(self, x_values, y_values_list, labels, colors, filename, y_label, directory="uncertainty_plots"):
         """
         Create a plot from given y-values, labels, and colors, then save it.
 
@@ -38,11 +38,11 @@ class UncertaintyPlotter:
         for y_values, label, color in zip(y_values_list, labels, colors):
             plt.plot(x_values, y_values, label=label, color=color)
         plt.xlabel("Number of features")
-        plt.ylabel("RMSE")
+        plt.ylabel(y_label)
         plt.xticks(x_values)
         plt.gca().invert_xaxis()
         plt.xlim(x_values[0], x_values[-1])
-        plt.legend(loc='lower left')
+        # plt.legend(loc='lower left')
         plt.tight_layout()
         if directory:
             os.makedirs(directory, exist_ok=True)
@@ -60,7 +60,8 @@ class UncertaintyPlotter:
                 ["RMSE"],
                 ['#1f77b4'],
                 # f"RMSE_plot_{i}.pdf"
-                f"RMSE_plot_{self.window_plot_name}.pdf"
+                f"RMSE_plot_{self.window_plot_name}.pdf",
+                "RMSE [MWh]"
             )
 
             # Aleatoric plot
@@ -70,7 +71,8 @@ class UncertaintyPlotter:
                 ["Aleatoric Uncertainty"],
                 ['#2ca02c'],
                 # f"Uncertainty_plot_aleatoric_{i}.pdf"
-                f"Uncertainty_plot_aleatoric_{self.window_plot_name}.pdf"
+                f"Uncertainty_plot_aleatoric_{self.window_plot_name}.pdf",
+                "Alaetoric uncertainty [MWh]"
             )
 
             # Epistemic plot
@@ -80,7 +82,8 @@ class UncertaintyPlotter:
                 ["Epistemic Uncertainty"],
                 ['#ff7f0e'],
                 # f"Uncertainty_plot_epistemic_{i}.pdf"
-                f"Uncertainty_plot_epistemic_{self.window_plot_name}.pdf"
+                f"Uncertainty_plot_epistemic_{self.window_plot_name}.pdf",
+                "Epistemic uncertainty [MWh]"
             )
 
 
