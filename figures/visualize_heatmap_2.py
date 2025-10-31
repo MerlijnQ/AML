@@ -39,7 +39,7 @@ class HeatMap:
         return heatmap
     
     def _load_data(self, file_name):
-        with open('results_size_24.json', 'r') as f:
+        with open(file_name, 'r') as f:
             results = json.load(f)
         heatmap_data = results["shap_values"][0]
 
@@ -78,12 +78,12 @@ class HeatMap:
             "Holiday_ID10": "Holy Saturday",
             "Holiday_ID11": "Resurrection Sunday",
             "Holiday_ID12": "Labor Day",
-            "Holiday_ID13": "Foundation of Old Panama",
-            "Holiday_ID14": "Separation of Panama from Colombia",
+            "Holiday_ID13": "Foundation of Old P.",
+            "Holiday_ID14": "Separation of Colom.",
             "Holiday_ID15": "Flag Day",
-            "Holiday_ID16": "Patriotic Commemoration in Colón city",
-            "Holiday_ID17": "First Cry of Independence",
-            "Holiday_ID18": "Independence of Panama from Spain",
+            "Holiday_ID16": "Patriotic Comm.",
+            "Holiday_ID17": "First Cry of Indepen.",
+            "Holiday_ID18": "P. indepen. of Spain",
             "Holiday_ID19": "Mother's Day",
             "Holiday_ID20": "Christmas Eve",
             "Holiday_ID21": "Christmas",
@@ -129,8 +129,8 @@ class HeatMap:
 
         # figure config
         plt.xticks(ticks=[x + 0.5 for x in range(self.nr_features)], labels=list(range(self.nr_features, 0, -1)))
-        plt.xlabel("nr_features")
-        plt.ylabel("features")
+        plt.xlabel("Number of Features")
+        plt.ylabel("Features")
         save_directory = 'heatmap'
 
         # save figure

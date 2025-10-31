@@ -23,7 +23,7 @@ class UncertaintyPlotter:
         with open(self.results_file, 'r') as f:
             return json.load(f)
 
-    def plot_and_save(self, x_values, y_values_list, labels, colors, filename, y_label, directory="uncertainty_plots"):
+    def plot_and_save(self, x_values, y_values_list, labels, colors, filename, y_label, directory):
         """
         Create a plot from given y-values, labels, and colors, then save it.
 
@@ -61,7 +61,8 @@ class UncertaintyPlotter:
                 ['#1f77b4'],
                 # f"RMSE_plot_{i}.pdf"
                 f"RMSE_plot_{self.window_plot_name}.pdf",
-                "RMSE [MWh]"
+                "RMSE [MWh]",
+                "accuracy_plots"
             )
 
             # Aleatoric plot
@@ -72,7 +73,8 @@ class UncertaintyPlotter:
                 ['#2ca02c'],
                 # f"Uncertainty_plot_aleatoric_{i}.pdf"
                 f"Uncertainty_plot_aleatoric_{self.window_plot_name}.pdf",
-                "Alaetoric uncertainty [MWh]"
+                "Alaetoric uncertainty [MWh]",
+                "uncertainty_plots"
             )
 
             # Epistemic plot
@@ -83,7 +85,8 @@ class UncertaintyPlotter:
                 ['#ff7f0e'],
                 # f"Uncertainty_plot_epistemic_{i}.pdf"
                 f"Uncertainty_plot_epistemic_{self.window_plot_name}.pdf",
-                "Epistemic uncertainty [MWh]"
+                "Epistemic uncertainty [MWh]",
+                "uncertainty_plots"
             )
 
 
