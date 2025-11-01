@@ -16,6 +16,8 @@ class DatasetVisualizer:
         # Holidays (ID 0-22)
         unique_holiday_IDs = self.df_orig['Holiday_ID'].unique()
 
+        self.rel_dir = 'images/data_preprocessing/'
+
     def __get_modified_dataset(self):
         # read dataset
         rel_path = '../dataset/continuous dataset.csv'
@@ -47,9 +49,9 @@ class DatasetVisualizer:
         # plt.show()
         plt.close()
 
-    def __save_fig(self, title, direction='data_preprocessing'):
-        os.makedirs(direction, exist_ok=True)
-        plt.savefig(f"{direction}/{title}.pdf")
+    def __save_fig(self, title):
+        os.makedirs(self.rel_dir, exist_ok=True)
+        plt.savefig(f"{self.rel_dir}/{title}.pdf")
 
     # Plot to see when covid happened
     def plot_covid(self, show=False):

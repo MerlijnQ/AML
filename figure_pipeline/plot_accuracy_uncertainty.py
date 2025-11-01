@@ -17,13 +17,14 @@ class UncertaintyPlotter:
         self.nr_window_sizes = 1
         self.nr_features_values = [x for x in range(self.nr_features, 0, -1)]
         
+        self.image_output_dir = 'images/'
 
     def _load_results(self):
         """Load JSON results data from file."""
         with open(self.results_file, 'r') as f:
             return json.load(f)
 
-    def plot_and_save(self, x_values, y_values_list, labels, colors, filename, y_label, directory):
+    def plot_and_save(self, x_values, y_values_list, labels, colors, filename, y_label, directory, show):
         """
         Create a plot from given y-values, labels, and colors, then save it.
 
@@ -47,10 +48,11 @@ class UncertaintyPlotter:
         if directory:
             os.makedirs(directory, exist_ok=True)
         plt.savefig(os.path.join(directory, filename))
-        plt.show()
+        if show:
+            plt.show()
         plt.close()
 
-    def generate_plots(self):
+    def generate_plots(self, show=True):
         """Generate all required plots from loaded data."""
         for i in range(self.nr_window_sizes):
             # Accuracy plot
@@ -62,7 +64,8 @@ class UncertaintyPlotter:
                 # f"RMSE_plot_{i}.pdf"
                 f"RMSE_plot_{self.window_plot_name}.pdf",
                 "RMSE [MWh]",
-                "accuracy_plots"
+                self.image_output_dir + "accuracy_plots",
+                show
             )
 
             # Aleatoric plot
@@ -74,7 +77,8 @@ class UncertaintyPlotter:
                 # f"Uncertainty_plot_aleatoric_{i}.pdf"
                 f"Uncertainty_plot_aleatoric_{self.window_plot_name}.pdf",
                 "Alaetoric uncertainty [MWh]",
-                "uncertainty_plots"
+                self.image_output_dir + "uncertainty_plots",
+                show
             )
 
             # Epistemic plot
@@ -86,23 +90,24 @@ class UncertaintyPlotter:
                 # f"Uncertainty_plot_epistemic_{i}.pdf"
                 f"Uncertainty_plot_epistemic_{self.window_plot_name}.pdf",
                 "Epistemic uncertainty [MWh]",
-                "uncertainty_plots"
+                self.image_output_dir + "uncertainty_plots",
+                show
             )
 
 
 if __name__ == "__main__":
     # Window size 24
-    plotter = UncertaintyPlotter(results_file="results/results_size_24.json", window_plot_name="window_24")
-    plotter.generate_plots()
+    plotter = UncertaintyPlotter(results_file="model_results/results_size_24.json", window_plot_name="window_24")
+    plotter.generate_plots(show=False)
 
     # Window size 48
-    plotter = UncertaintyPlotter(results_file="results/results_size_48.json", window_plot_name="window_48")
-    plotter.generate_plots()
+    plotter = UncertaintyPlotter(results_file="model_results/results_size_48.json", window_plot_name="window_48")
+    plotter.generate_plots(show=False)
 
     # Window size 72
-    plotter = UncertaintyPlotter(results_file="results/results_size_72.json", window_plot_name="window_72")
-    plotter.generate_plots()
+    plotter = UncertaintyPlotter(results_file="model_results/results_size_72.json", window_plot_name="window_72")
+    plotter.generate_plots(show=False)
 
     # Window size 120
-    plotter = UncertaintyPlotter(results_file="results/results_size_120.json", window_plot_name="window_120")
-    plotter.generate_plots()
+    plotter = UncertaintyPlotter(results_file="model_results/results_size_120.json", window_plot_name="window_120")
+    plotter.generate_plots(show=False)

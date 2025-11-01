@@ -17,6 +17,8 @@ class HeatMap:
         self.nr_features = len(self.labels)
         self.heatmap = self._create_heatmap_data()
         self.annot_labels = self._get_annot_labels()
+        self.save_directory = 'images/heatmaps/'
+        os.makedirs(self.save_directory, exist_ok=True)
 
         
     def _create_heatmap_data(self):
@@ -134,20 +136,19 @@ class HeatMap:
         save_directory = 'heatmap'
 
         # save figure
-        os.makedirs(save_directory, exist_ok=True)
-        plt.savefig(save_directory + "/heatmap_" + subtitle + ".pdf")
-        plt.show()
+        plt.savefig(self.save_directory + "heatmap_" + subtitle + ".pdf")
+        # plt.show()
 
 
 if __name__ == "__main__":
-    heatmap_24 = HeatMap('results/results_size_24.json')
+    heatmap_24 = HeatMap('model_results/results_size_24.json')
     heatmap_24.plot_heatmap("window_24")
 
-    heatmap_48 = HeatMap('results/results_size_48.json')
+    heatmap_48 = HeatMap('model_results/results_size_48.json')
     heatmap_48.plot_heatmap("window_48")
 
-    heatmap_72 = HeatMap('results/results_size_72.json')
+    heatmap_72 = HeatMap('model_results/results_size_72.json')
     heatmap_72.plot_heatmap("window_72")
 
-    heatmap_120 = HeatMap('results/results_size_120.json')
+    heatmap_120 = HeatMap('model_results/results_size_120.json')
     heatmap_120.plot_heatmap("window_120")
