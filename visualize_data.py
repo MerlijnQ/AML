@@ -163,8 +163,8 @@ def plot_full_grid_load():
     plt.close()
 
 
-# plot_grid_load()
-# plot_grid_load_intra_day()
-# plot_holiday_IDs()
-# plot_full_grid_load()
-print(df_orig['datetime'].max())
+plot_grid_load()
+plot_grid_load_intra_day()
+plot_holiday_IDs()
+plot_full_grid_load()
+# print(df_orig['datetime'].max())
