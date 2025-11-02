@@ -12,5 +12,5 @@ The following categories of files can be found:
 - **model** (map): all the details about the model
 - **shap_explainer** (file): the class for applying SHAP
 - **pipeline** (file): the pipeline for initializing dataloader, training a model and discarding a feature with SHAP
-- **data** (map): (old and new) json data of a running the pipeline
-- **figures** (map): code and figures of heatmaps, RMSE, uncertainties
+- **data** (map): json data of a running the pipeline
+- **figure_pipeline** (map): code and figures of data preprocessing, heatmaps, RMSE, uncertainties
