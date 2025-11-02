@@ -1,17 +1,26 @@
 import torch.nn as nn
 import torch
-import numpy as np
 import math
 from model.TCN import TCNModule
 # from model.bayesian import bayesianModule
 import torch.nn.functional as F
 
 class DHBCNN(nn.Module):
-    def __init__(self, n_features, n_timesteps, dilation=2, k=3):
+    def __init__(self, n_features:int, n_timesteps:int, dilation:int=2, k:int=3) -> None:
+
+        """A pytorch model that scaled its depth and width with TCN blocks based on the input dimension. 
+           The model contains two-head. One for prediction and one for the variance, which is needed to estimate the aleatoric uncertainty.
+        
+
+        Args:
+            n_features (int): Number of input features.
+            n_timesteps (int): Number of timesteps.
+            dilation (int, optional): Dilation factor. Defaults to 2.
+            k (int, optional): Kernel size. Defaults to 3.
+        """
+
         super().__init__()
         self.eps = 1e-6
-
-        # n_channels = int(32 * np.sqrt(n_features))
 
         def devisor_by_8_closest(v):
             v_2 = max(8, ((v + 8/2) // 8) * 8 ) #Make sure it's multiple of 8 and at least 8. This way we are in line with common practices for channel sizes and it is friendly on hardware accelaration (e.g. bits are usually multiple of 8).
@@ -50,15 +59,9 @@ class DHBCNN(nn.Module):
         self.pool = nn.AdaptiveAvgPool1d(1)
         #Size now becomes n_channels
 
-        #Add bayesian linear layer
-        # self.mu = bayesianModule(n_channels)
-        # self.sigma = bayesianModule(n_channels)
         
         self.mu = nn.Linear(c_prev, 1)
         
-        # nn.init.constant_(self.sigma.bias, 0.0)     # so elu(0) = 0
-        # nn.init.normal_(self.sigma.weight, 0, 1e-4) #Initialize weights close to zero to prevent big initial sigma and potential instabilities
-
         # Initialize weights
         self._init_weights()
         
@@ -67,35 +70,65 @@ class DHBCNN(nn.Module):
         nn.init.constant_(self.sigma.bias, math.log(math.e - 1))  # ≈ 1 after softplus
         nn.init.normal_(self.sigma.weight, 0, 1e-4)  #Initialize weights close to zero to prevent big initial sigma and potential instabilities
 
+        #Alternative
+        # nn.init.constant_(self.sigma.bias, 0.0)     # so elu(0) = 0
+        # nn.init.normal_(self.sigma.weight, 0, 1e-4) #Initialize weights close to zero to prevent big initial sigma and potential instabilities
 
-    def _init_weights(self):
+    def _init_weights(self) -> None:
+        """Initalize all weights, except for the variance head through a xavier uniform distribution.
+        """
         for m in self.modules():
             if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def sigma_head(self, X):
+    def sigma_head(self, X:torch.tensor)-> torch.tensor:
+        """A forward pass through the sigma head estimating the squared variance. 
+            Softplus is used to ensure positivity. 
+
+        Args:
+            X (torch.tensor): Input tensor.
+
+        Returns:
+            torch.tensor: Output tensor.
+        """
         X = self.sigma(X)
-        #We need to following trick to prevent extreme values that we cannot use. I.e. it stabilizes. Derived from: https://arxiv.org/pdf/2012.14389
+
+        #Alternative: We need to following trick to prevent extreme values that we cannot use. I.e. it stabilizes. Derived from: https://arxiv.org/pdf/2012.14389
         # sigma = 1 + F.elu(X) + self.eps 
         # sigma = torch.clamp(sigma, min=self.eps)
+
         sigma = F.softplus(X) + self.eps
         return sigma
     
-    def feature_extractor(self, X):
+    def feature_extractor(self, X:torch.tensor) -> torch.tensor:
+        """Extract the output of the TCN blocks which encode the information presented in the input tensor.
+
+        Args:
+            X (torch.tensor): Input tensor in dimension of original data.
+
+        Returns:
+            torch.tensor: Output tensor in latent space.
+        """
+
         for block in self.blocks:
             X = block(X)
         X = self.pool(X)
         X = X.squeeze(-1)
         return X
         
-    def forward(self, X):
+    def forward(self, X:torch.tensor) -> tuple[torch.tensor, torch.tensor]:
+        """A forward pass through the entire model.
+
+        Args:
+            X (torch.tensor): Input tensor in dimension of original data.
+
+        Returns:
+            tuple[torch.tensor, torch.tensor]: Outputs the predictions and variance after inference.
+        """
+
         X = self.feature_extractor(X)
         mu = self.mu(X)
         sigma = self.sigma_head(X)
         return mu, sigma
-
-    # def predict_mu(self, X):
-    #     self.feature_extractor(X)
-    #     return self.mu(X)
