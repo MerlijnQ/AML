@@ -60,7 +60,7 @@ class DataLoaderTimeSeries:
     
     def _initialize_datasets(self):
         """Initializes timeseries dataset instance and obtain train-val-test datasets."""
-        dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, ["nat_demand", "weekend"])
+        dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, self._features)
         train, self._test = dat_time_series.train_test_split()
         self._training, self._validation = train.train_test_split()
 
