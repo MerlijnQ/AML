@@ -9,8 +9,18 @@ class SHAPExplainer:
     def __init__(self):
         pass
 
-    # Wrapper for the predictions because SHAP requires the model to be deterministic
     def __shap_predict(self, model, X, input_shape):
+        """Wrapper for the predictions because SHAP requires the model to be deterministic
+
+        Args:
+            model: a neural network model to make predictions.
+            X: input for the model.
+            input_shape: the shape of the input.
+
+        Returns:
+            predictions: the predictions of the model as a numpy array.
+
+        """
         device = next(model.parameters()).device
         batch_size = X.shape[0]
         n_features, seq_len = input_shape
@@ -26,8 +36,16 @@ class SHAPExplainer:
 
         return pred.detach().cpu().numpy()
 
-    # Get a certain number of samples independently of the batch size
     def __get_samples_from_loader(self, loader, n_samples):
+        """Get a certain number of samples independently of the batch size
+
+        Args:
+            loader: an instance of a dataloader.
+            n_samples: the number of samples to get from the dataloader.
+
+        Returns:
+            samples: a numpy array of shape [n_samples, n_features].
+        """
         samples = []
         for batch_X, _ in loader:
             samples.append(batch_X)
@@ -35,13 +53,26 @@ class SHAPExplainer:
                 break
         return torch.cat(samples, dim=0)[:n_samples]
 
-    # Function that explain the predictions and returns an array with features and shap values and least important feature.
-    # SHAP values for "hour_cos" and "hour_sin" are computed separately, and then averaged in the new "hour" feature.
-    # SHAP values for "hour_cos" and "hour_sin" are returned separately, but the least important feature is renamed "hour".
-    #
-    # NOTE: Only set apple_silicon=True if testing SHAP on a device with Apple Silicon.
-    #       This fixes a runtime error, but it will return different SHAP values.
     def explain_predictions(self, X_train, X_test, model, features, apple_silicon=False):
+        """Function that explain the predictions and returns an array with features and shap values and least important feature.
+        SHAP values for "hour_cos" and "hour_sin" are computed separately, and then averaged in the new "hour" feature.
+        SHAP values for "hour_cos" and "hour_sin" are returned separately, but the least important feature is renamed "hour".
+
+        NOTE: Only set apple_silicon=True if testing SHAP on a device with Apple Silicon.
+        This fixes a runtime error, but it will return different SHAP values.
+
+        Args:
+            X_train: input dataloader to train the model.
+            X_test: input dataloader to test the model.
+            model: the neural network model whose features are to be explained.
+            features: names of the features in the dataloaders.
+            apple_silicon: whether the device used runs on Apple Silicon or not.
+
+        Returns:
+            feature_importance_tuples: array containing SHAP values for all features.
+            least_important_feature: the least important feature.
+
+        """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         background_distribution = self.__get_samples_from_loader(X_train, 100).to(device=device, dtype=torch.float32)
