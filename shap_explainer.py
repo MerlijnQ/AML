@@ -1,15 +1,19 @@
+from typing import Tuple, List
 import shap
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
+from torch import nn
+from torch.utils.data import DataLoader
+
 
 class SHAPExplainer:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def __shap_predict(self, model, X, input_shape):
+    def __shap_predict(self, model: nn.Module, X: np.ndarray, input_shape: Tuple[int, int]) -> np.ndarray:
         """Wrapper for the predictions because SHAP requires the model to be deterministic
 
         Args:
@@ -36,7 +40,7 @@ class SHAPExplainer:
 
         return pred.detach().cpu().numpy()
 
-    def __get_samples_from_loader(self, loader, n_samples):
+    def __get_samples_from_loader(self, loader: DataLoader, n_samples: int) -> torch.Tensor:
         """Get a certain number of samples independently of the batch size
 
         Args:
@@ -44,7 +48,7 @@ class SHAPExplainer:
             n_samples: the number of samples to get from the dataloader.
 
         Returns:
-            samples: a numpy array of shape [n_samples, n_features].
+            samples: a Tensor containing n_samples samples from the dataloader.
         """
         samples = []
         for batch_X, _ in loader:
@@ -53,7 +57,7 @@ class SHAPExplainer:
                 break
         return torch.cat(samples, dim=0)[:n_samples]
 
-    def explain_predictions(self, X_train, X_test, model, features, apple_silicon=False):
+    def explain_predictions(self, X_train: DataLoader, X_test: DataLoader, model: nn.Module, features: List[str], apple_silicon: bool = False) -> Tuple[List[Tuple[str, float]], str]:
         """Function that explain the predictions and returns an array with features and shap values and least important feature.
         SHAP values for "hour_cos" and "hour_sin" are computed separately, and then averaged in the new "hour" feature.
         SHAP values for "hour_cos" and "hour_sin" are returned separately, but the least important feature is renamed "hour".
