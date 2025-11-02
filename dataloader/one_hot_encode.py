@@ -1,7 +1,16 @@
 import pandas as pd
 
-def one_hot_encode(feature, feature_data:pd.Series):
-    """One hot encodes the data of feature."""
+def one_hot_encode(feature: list[str], feature_data:pd.Series) -> pd.DataFrame:
+    """
+    Function that one hot encodes the data of a feature.
+
+    Args:
+        feature (str): the feature that needs to be one hot encoded.
+        feature_data (pd.Series): the data of the feature.
+
+    Returns:
+        pd.DataFrame: the one hot encoded data of size (data length*unique values)
+    """
     unique_values = list(feature_data.unique())
     unique_values.remove(0)
     unique_values.sort()

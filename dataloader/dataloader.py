@@ -1,6 +1,7 @@
 from torch.utils.data import DataLoader
 import pandas as pd
 import numpy as np
+import torch
 from dataloader.dataset import TimeSeriesDataset
 from dataloader.scaler import ZScoreNormalization
 from dataloader.one_hot_encode import one_hot_encode
@@ -12,8 +13,15 @@ DISCRETE_FEATURES = ['holiday', 'school', 'Holiday_ID1', 'Holiday_ID2', 'Holiday
                         'hour_sin', 'hour_cos', 'weekend']
 
 class DataLoaderTimeSeries:
-    def __init__(self, input_window: int = 24, output_window: int = 24, batch_size: int = 128):
-        """Initialize the dataloaders for the timeseries dataset."""
+    def __init__(self, input_window: int = 24, output_window: int = 24, batch_size: int = 128) -> None: 
+        """
+        Initialize the dataloaders for the timeseries dataset.
+
+        Args:
+            input_window (int): input window size in hours.
+            output_window (int): prediction in the future in hours.
+            batch_size (int): size of the batch for the dataloaders.
+        """
         self._input_window = input_window
         self._output_window = output_window
         self._batch_size = batch_size
@@ -29,8 +37,13 @@ class DataLoaderTimeSeries:
         self._scale_target_feature()
         self._update_loaders()
 
-    def _get_dataset(self):
-        """Obtain the dataset from file"""
+    def _get_dataset(self) -> pd.DataFrame:
+        """
+        Obtain the dataset from file.
+
+        Returns:
+            pd.DataFrame: The dataset with discarded data from 2020-03-01.
+        """
         path_dataset = "dataset/continuous dataset.csv"
         dataset = pd.read_csv(path_dataset)
 
@@ -39,8 +52,10 @@ class DataLoaderTimeSeries:
         dataset["datetime"] = pd.to_datetime(dataset["datetime"])
         return dataset
     
-    def _preprocess_features(self):
-        """Preprocess features by one hot encoding and adding features."""
+    def _preprocess_features(self) -> None:
+        """
+        Preprocess features by one hot encoding and adding features.
+        """
         # add one hot encoded Holiday ID feature
         df_one_hot_encoded = one_hot_encode("Holiday_ID", self._dataset["Holiday_ID"])
         self._dataset = pd.concat([self._dataset, df_one_hot_encoded], axis=1)
@@ -58,14 +73,18 @@ class DataLoaderTimeSeries:
         self._features.remove("datetime")
         self._features.remove("Holiday_ID")
     
-    def _initialize_datasets(self):
-        """Initializes timeseries dataset instance and obtain train-val-test datasets."""
+    def _initialize_datasets(self) -> None:
+        """
+        Initializes timeseries dataset instance and obtain train-val-test datasets.
+        """
         dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, self._features)
         train, self._test = dat_time_series.train_test_split()
         self._training, self._validation = train.train_test_split()
 
-    def _scale_input_features(self):
-        """Normalizes the input features."""
+    def _scale_input_features(self) -> None:
+        """
+        Normalizes the input features.
+        """
         n_discrete_features = len(set(self._features) & set(DISCRETE_FEATURES))
 
         self._scaler.fit(self._training.scalable_data,n_discrete_features)
@@ -73,8 +92,10 @@ class DataLoaderTimeSeries:
         self._validation.transform(self._scaler,n_discrete_features)
         self._test.transform(self._scaler,n_discrete_features)
 
-    def _scale_target_feature(self):
-        """Normalizes the the target feature."""
+    def _scale_target_feature(self) -> None:
+        """
+        Normalizes the the target feature.
+        """
         y_train = self._training._y
         self.target_mean = y_train.mean().item()
         self.target_std = y_train.std().item()
@@ -83,40 +104,89 @@ class DataLoaderTimeSeries:
         self._validation._y = (self._validation._y - self.target_mean) / (self.target_std + self.eps)
         self._test._y = (self._test._y - self.target_mean) / (self.target_std + self.eps)
 
-    def _inverse_transform_target(self, y_scaled):
-        """Convert normalized target (y_scaled) back to original units."""
+    def _inverse_transform_target(self, y_scaled:torch.Tensor) -> torch.Tensor:
+        """
+        Convert normalized target (y_scaled) back to original units.
+
+        Args:
+            y_scaled (torch.Tensor): normalized target.
+
+        Returns:
+            torch.Tensor: target in its original units.
+
+        """
         return y_scaled * (self.target_std + self.eps) + self.target_mean
     
-    def _update_loaders(self):
-        """Initializes or updates the dataloaders for the train, validation and test set."""
+    def _update_loaders(self) -> None:
+        """
+        Initializes or updates the dataloaders for the train, validation and test set.
+        """
         self._train_loader = DataLoader(self._training, batch_size=self._batch_size, shuffle=False)
         self._val_loader = DataLoader(self._validation, batch_size=self._batch_size, shuffle=False)
         self._test_loader = DataLoader(self._test, batch_size=self._batch_size, shuffle=False)
 
-    def remove_feature(self, feature: str):
-        """Removes a feature from the datasets and updates the dataloaders."""
+    def remove_feature(self, feature:str) -> None:
+        """
+        Removes a feature from the datasets and updates the dataloaders.
+
+        Args:
+            idx (int): index of the feature to be removed.
+        """
         self._training.remove_feature(feature)
         self._validation.remove_feature(feature)
         self._test.remove_feature(feature)
         self._features.remove(feature)
         self._update_loaders()
 
-    def get_feature_at_index(self, idx: int):
-        """Returns the feature at the given index"""
+    def get_feature_at_index(self, idx: int) -> str:
+        
+        """
+        Returns the feature at the given index.
+
+        Args:
+            idx (int): the index of the feature.
+
+        Returns:
+            str: the feature at index.
+        """
         return self._features[idx]
 
     @property
-    def features(self):
+    def features(self) -> list[str]:
+        """
+        Returns the features.
+
+        Returns:
+            list[str]: the features of the dataset.
+        """
         return self._features
 
     @property
-    def train_loader(self):
+    def train_loader(self) -> DataLoader:
+        """
+        Returns the train dataloader.
+
+        Returns:
+            DataLoader: the train dataloader.
+        """
         return self._train_loader
     
     @property
-    def validation_loader(self):
+    def validation_loader(self) -> DataLoader:
+        """
+        Returns the validation dataloader.
+
+        Returns:
+            DataLoader: the validation dataloader.
+        """
         return self._val_loader
     
     @property
-    def test_loader(self):
+    def test_loader(self) -> DataLoader:
+        """
+        Returns the test dataloader.
+
+        Returns:
+            DataLoader: the test dataloader.
+        """
         return self._test_loader

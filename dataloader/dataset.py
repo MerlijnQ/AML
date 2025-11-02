@@ -8,8 +8,16 @@ FEATURES = ['nat_demand', 'T2M_toc', 'QV2M_toc', 'TQL_toc', 'W2M_toc',
        'TQL_dav', 'W2M_dav', 'Holiday_ID', 'holiday', 'school']
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, dataset: pd.DataFrame, input_window:int = 24, output_window:int = 24, features:list=FEATURES):
-        """Initialize the timeseries dataset."""
+    def __init__(self, dataset: pd.DataFrame, input_window:int = 24, output_window:int = 24, features:list[str]=FEATURES) -> None:
+        """
+        Initialize the timeseries dataset.
+
+        Args:
+            dataset (pd.DataFrame): original dataset.
+            input_window (int): input window size in hours.
+            output_window (int): prediction in the future in hours.
+            features (list[str]): the features of the original dataset.
+        """
         self._orig_dataset = dataset
         self._input_window = input_window
         self._output_window = output_window
@@ -29,12 +37,25 @@ class TimeSeriesDataset(Dataset):
         self._y = torch.stack(y,dim=0)
         self._scaled_X = None
 
-    def __len__(self):
-        """Returns the number of samples in the dataset."""
+    def __len__(self) -> int:
+        """
+        Returns the number of samples in the dataset.
+
+        Returns:
+            int: the number of samples in the dataset
+        """
         return self._X.size(dim=0)
 
-    def __getitem__(self, index:int):
-        """Returns the sample (normalized or not) at index."""
+    def __getitem__(self, index:int) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Returns the sample (normalized or not) at index.
+
+        Args:
+            index (int): the index of the sample.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: a data point (X, y).
+        """
         if index > self._X.size(dim=0):
             raise ValueError(
                 (
@@ -48,8 +69,16 @@ class TimeSeriesDataset(Dataset):
         else:
             return self._scaled_X[index].permute(1, 0), self._y[index]
     
-    def train_test_split(self, n_years:int = 1):
-        """Splits the data into two seperate dataset instances based on the number of years in the test dataset."""
+    def train_test_split(self, n_years:int = 1) -> tuple["TimeSeriesDataset", "TimeSeriesDataset"]:
+        """
+        Splits the data into two seperate dataset instances based on the number of years in the test dataset.
+
+        Args:
+            n_years (int=1): the number of years of the test set.
+
+        Returns:
+            tuple["TimeSeriesDataset", "TimeSeriesDataset"]: the train and test set.
+        """
         time = self._orig_dataset["datetime"].iloc[-1]
         split_idx_train = time - pd.DateOffset(years=n_years)
         split_idx_test = split_idx_train - pd.DateOffset(hours=self._input_window+self._output_window)
@@ -61,12 +90,23 @@ class TimeSeriesDataset(Dataset):
         arg_test = [self._input_window, self._output_window, self._features.copy()]
         return (TimeSeriesDataset(dat_train, *arg_train), TimeSeriesDataset(dat_test, *arg_test))
 
-    def transform(self, scaler: ZScoreNormalization, n_discrete_features:int):
-        """Transforms the continuous input data with a fitted scaler."""
+    def transform(self, scaler: ZScoreNormalization, n_discrete_features:int) -> None:
+        """
+        Transforms the continuous input data with a fitted scaler.
+
+        Args:
+            scaler (ZScoreNormalization): an class instance for z score normalization.
+            n_discrete_features (int): number of discrete features.
+        """
         self._scaled_X = scaler.transform(self._X, n_discrete_features)
 
-    def remove_feature(self, feature:str):
-        """Removes a feature from dataset"""
+    def remove_feature(self, feature:str) -> None:
+        """
+        Removes a feature from dataset.
+
+        Args:
+            feature (str): the feature to be removed.
+        """
         feature_index = self._features.index(feature)
         flattened_X = self._X.view(-1,len(self._features))
         X_feature_removed = torch.cat((flattened_X[:,:feature_index], flattened_X[:,feature_index+1:]), dim=1)
@@ -82,17 +122,41 @@ class TimeSeriesDataset(Dataset):
             self._scaled_X = scaled_X_feature_removed.view(len(self._y), self._input_window, len(self._features))
 
     @property
-    def data(self):
+    def data(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Returns the data (normalized or not).
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: the (normalized) data: (X,y).
+        """
         return (self._X, self._y) if self._scaled_X == None else (self._scaled_X, self._y)
     
     @property
-    def X(self):
+    def X(self) -> torch.Tensor:
+        """
+        Returns the input X.
+
+        Returns:
+            torch.Tensor: input X.
+        """
         return self._X
     
     @property
-    def y(self):
+    def y(self) -> torch.Tensor:
+        """
+        Returns target y.
+
+        Returns:
+            torch.Tensor: target y.
+        """
         return self._y
     
     @property
-    def scalable_data(self):
+    def scalable_data(self) -> torch.Tensor:
+        """
+        Returns the scalable input data.
+
+        Returns:
+            torch.Tensor: scalable input data.
+        """
         return self._data[0:len(self._data)-self._output_window-1]
