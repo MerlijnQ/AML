@@ -3,7 +3,13 @@ import torch
 import torch.nn.functional as F
 
 class bayesianModule(nn.Module):
-    def __init__(self, N_features):
+    def __init__(self, N_features:int)-> None:
+        """A bayesian layer
+
+        Args:
+            N_features (int): Number of features as input to the layer.
+        """
+
         super().__init__()
     
         self.W_mu = nn.Parameter(torch.zeros(1, N_features))
@@ -12,7 +18,16 @@ class bayesianModule(nn.Module):
         self.b_mu = nn.Parameter(torch.zeros(1))
         self.b_sigma = nn.Parameter(torch.full((1, ), -5.0))
 
-    def forward(self, X):
+    def forward(self, X:torch.tensor) -> torch.tensor:
+        """A forward pass through the bayesian layer.
+
+        Args:
+            X (torch.tensor): An input tensor.
+
+        Returns:
+            torch.tensor: An output tensor after transformations done in the bayesian layer.
+        """
+
         # ensure sigma is always positive (as STD is by definition > 0).
         # We ensure this through softplus
         W_sigma = torch.log1p(torch.exp(self.W_sigma))

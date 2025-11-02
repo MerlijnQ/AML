@@ -1,4 +1,4 @@
-from dataloader import DataLoaderTimeSeries
+from dataloader.dataloader import DataLoaderTimeSeries
 from model.ensemble import create_ensemble
 from shap_explainer import SHAPExplainer
 import json
