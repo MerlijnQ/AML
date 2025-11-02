@@ -19,6 +19,7 @@ class ModelPerformancePlotter:
             "72 hours",
             "120 hours"
         ]
+        self.nr_of_features = 0
         self.RMSE = []
         self.aleatoric_uncertainty = []
         self.epistemic_uncertainty = []
@@ -35,7 +36,8 @@ class ModelPerformancePlotter:
             self.epistemic_uncertainty.append(window_results_json["epistemic_uncertainty"][0])
 
         # set feature run labels
-        self.nr_features_in_run = [x for x in range(len(self.RMSE[0]), 0, -1)]
+        self.nr_of_features = len(self.RMSE[0])
+        self.nr_features_in_run = [x for x in range(self.nr_of_features, 0, -1)]
 
     def __plot_and_save(self, y_values_list, y_axis_label, output_file_name, show=True):
         plt.figure(figsize=(10, 5))
@@ -50,6 +52,7 @@ class ModelPerformancePlotter:
         # Make tick labels larger too
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
+        plt.xlim(1, self.nr_of_features)
 
         plt.gca().invert_xaxis()
         plt.legend(fontsize=12)
