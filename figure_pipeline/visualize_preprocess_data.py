@@ -12,6 +12,7 @@ class DatasetVisualizer:
         self.df_pre_covid = self.df_orig[self.df_orig['datetime'] <= self.covid_start_date].copy()
 
         self.start_date_dataset = self.df_orig['datetime'].min()
+        self.end_date_dataset = self.df_orig['datetime'].max()
 
         # Holidays (ID 0-22)
         unique_holiday_IDs = self.df_orig['Holiday_ID'].unique()
@@ -68,7 +69,6 @@ class DatasetVisualizer:
         plt.xlim(start_date, end_date)
         plt.ylim(0, 1700)
         plt.legend()
-        plt.grid(True)
         plt.tight_layout()
         self.__save_fig('march_2020')
         if show:
@@ -81,7 +81,6 @@ class DatasetVisualizer:
         plt.xlabel("Date")
         plt.ylabel("National Demand [MWh]")
         # plt.legend(loc='lower left')
-        # plt.grid(True)
         plt.xlim(self.df_orig['datetime'].min(), self.df_orig['datetime'].max())
         plt.ylim(-400, 1750)
         plt.tight_layout()
@@ -96,11 +95,9 @@ class DatasetVisualizer:
         # Figure 1: Weekly average
         self.__make_fig()
         plt.plot(avg_daily.index, avg_daily.values, marker='o')
-        plt.title('Average Grid Load per Day of the Week')
         plt.xlabel('Day of Week')
         plt.ylabel('Grid Load [MWh]')
         plt.ylim(900, 1400)
-        plt.grid(True)
         plt.tight_layout()
         self.__save_fig('weekly_average')
         # plt.show()
@@ -108,14 +105,24 @@ class DatasetVisualizer:
         # Figure 2: Daily hourly average
         plt.figure(figsize=(12, 4))
         plt.plot(avg_hourly.index, avg_hourly.values, marker='o')
-        plt.title('Average Daily Grid Load by Hour')
         plt.xlabel('Hour of Day')
         plt.ylabel('Grid Load [MWh]')
         plt.ylim(800, 1500)
-        plt.grid(True)
         plt.tight_layout()
         self.__save_fig('daily_average')
         # plt.show()
+
+    def plot_grid_load_full_dataset(self):
+        plt.figure(figsize=(12, 4))
+        plt.plot(self.df_orig['datetime'], self.df_orig['nat_demand'], alpha=0.5, linewidth=0.5)
+        plt.xlabel("Date")
+        plt.ylabel('nat_demand [MWh]')
+        plt.xlim(self.start_date_dataset, self.end_date_dataset)
+        plt.ylim(-400, 1750)
+        plt.tight_layout()
+        self.__save_fig('grid_load_full_dataset')
+        # plt.show()
+        plt.close()
 
     def plot_grid_load(self):
         window_size_4_weeks = 24 * 7 * 4  # 4 weeks ~ 1 month
@@ -175,15 +182,17 @@ class DatasetVisualizer:
         plt.xlabel('Holiday ID')
         plt.ylabel('Grid Load [MWh]')
         plt.legend()
-        plt.grid(True)
+        # plt.grid(True)
         plt.tight_layout()
         self.__save_fig('holiday_grid_loads')
-        # plt.show()
+        plt.show()
 
+    
 if __name__ == "__main__":
     datavisualizer = DatasetVisualizer()
-    datavisualizer.plot_full_grid_load()
-    datavisualizer.plot_grid_load_intra_day()
-    datavisualizer.plot_grid_load()
-    datavisualizer.plot_covid()
-    datavisualizer.plot_holiday_IDs()
+    # datavisualizer.plot_full_grid_load()
+    # datavisualizer.plot_grid_load_intra_day()
+    # datavisualizer.plot_grid_load()
+    # datavisualizer.plot_covid()
+    # datavisualizer.plot_holiday_IDs()
+    datavisualizer.plot_grid_load_full_dataset()
