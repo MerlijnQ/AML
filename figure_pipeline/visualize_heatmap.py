@@ -19,6 +19,7 @@ class HeatMap:
         self.annot_labels = self._get_annot_labels()
         self.save_directory = 'images/heatmaps/'
         os.makedirs(self.save_directory, exist_ok=True)
+        self.fontsize=20
 
         
     def _create_heatmap_data(self):
@@ -130,9 +131,11 @@ class HeatMap:
         sns.heatmap(self.heatmap, annot=False, cmap="coolwarm", cbar=True, yticklabels=self.annot_labels)
 
         # figure config
-        plt.xticks(ticks=[x + 0.5 for x in range(self.nr_features)], labels=list(range(self.nr_features, 0, -1)))
-        plt.xlabel("Number of Features")
-        plt.ylabel("Features")
+        plt.xticks(ticks=[x + 0.5 for x in range(self.nr_features)], 
+                   labels=list(range(self.nr_features, 0, -1)))
+        plt.xlabel("Number of Features", fontsize=self.fontsize)
+        plt.ylabel("Features", fontsize=self.fontsize)
+        
         save_directory = 'heatmap'
 
         # save figure
