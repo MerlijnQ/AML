@@ -4,16 +4,32 @@ from model.model import DHBCNN
 from model.train import TrainTest
 import numpy as np
 import random
+from torch.utils.data import DataLoader
 
 class ensemble_DHBCNN(nn.Module):
-    def __init__(self, models):
+    def __init__(self, models:list[nn.Module]) -> None:
+        """Initalizes an ensemble of models.
+
+        Args:
+            models (list[nn.Module]): List of ensemble members.
+        """
+
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.models = nn.ModuleList(models)
         for model in models:
             model.eval()
 
-    def forward(self, X):
+    def forward(self, X:torch.tensor) -> torch.tensor:
+        """Forward pass through the ensemble.
+
+        Args:
+            X (torch.tensor): Input data with shape [N, C, T].
+
+        Returns:
+            torch.tensor: The mean prediction from the ensemble members.
+        """
+
         mus = []
         sigmas = []
         for model in self.models:   
@@ -32,7 +48,16 @@ class ensemble_DHBCNN(nn.Module):
         return prediction
 
     @torch.no_grad
-    def evaluate(self, data_loader):
+    def evaluate(self, data_loader:DataLoader) -> tuple[float, float, float]:
+        """Evaluate ensemble performance with uncertainty.
+
+        Args:
+            data_loader (DataLoader): A dataloader containing the test data used to evaluate the ensemble.
+
+        Returns:
+            tuple[float, float, float]: RMSE, aleatoric uncertainty (in std), epistemic uncertainty (in units of original data).
+        """
+
         mus = []
         sigmas = []
         test_loader = data_loader.test_loader
@@ -77,9 +102,17 @@ class ensemble_DHBCNN(nn.Module):
 
         return rmse, aleatoric_std_unscaled, epistemic_std_unscaled
 
-
 class create_ensemble():
-    def __init__(self, n_features, window_size, train_loader, val_loader):
+    def __init__(self, n_features:int, window_size:int, train_loader:DataLoader, val_loader:DataLoader) -> None:
+        """Train 7 ensemble members with differnt initializations and the same training data.
+
+        Args:
+            n_features (int): Number of input features.
+            window_size (int): Number of timesteps.
+            train_loader (DataLoader): A dataloader object containing training data.
+            val_loader (DataLoader): A dataloader object containing validation data.
+        """
+
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         seeds = [5, 8, 64, 32, 42, 83, 27]
@@ -97,5 +130,11 @@ class create_ensemble():
             trained_model = trainer.train(new_model, train_loader, val_loader)
             self.models.append(trained_model)
 
-    def get_ensemble_model(self):
+    def get_ensemble_model(self) -> nn.Module:
+        """Returns a deep ensemble with trained double-headed ensemble members.
+
+        Returns:
+            nn.Module: A deep ensemble object.
+        """
+
         return ensemble_DHBCNN(self.models)
