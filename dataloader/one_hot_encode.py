@@ -1,6 +1,7 @@
 import pandas as pd
 
 def one_hot_encode(feature, feature_data:pd.Series):
+    """One hot encodes the data of feature."""
     unique_values = list(feature_data.unique())
     unique_values.remove(0)
     unique_values.sort()

@@ -1,9 +1,9 @@
 from torch.utils.data import DataLoader
 import pandas as pd
 import numpy as np
-from dataset import TimeSeriesDataset
-from scaler import ZScoreNormalization
-from one_hot_encode import one_hot_encode
+from dataloader.dataset import TimeSeriesDataset
+from dataloader.scaler import ZScoreNormalization
+from dataloader.one_hot_encode import one_hot_encode
 
 DISCRETE_FEATURES = ['holiday', 'school', 'Holiday_ID1', 'Holiday_ID2', 'Holiday_ID3', 'Holiday_ID4', \
                         'Holiday_ID5', 'Holiday_ID6', 'Holiday_ID7', 'Holiday_ID8', 'Holiday_ID9', 'Holiday_ID10', \
@@ -12,7 +12,8 @@ DISCRETE_FEATURES = ['holiday', 'school', 'Holiday_ID1', 'Holiday_ID2', 'Holiday
                         'hour_sin', 'hour_cos', 'weekend']
 
 class DataLoaderTimeSeries:
-    def __init__(self, input_window:{24,48,72}, output_window = 24, batch_size = 128):
+    def __init__(self, input_window: int = 24, output_window: int = 24, batch_size: int = 128):
+        """Initialize the dataloaders for the timeseries dataset."""
         self._input_window = input_window
         self._output_window = output_window
         self._batch_size = batch_size
@@ -22,43 +23,60 @@ class DataLoaderTimeSeries:
 
         self._dataset = self._get_dataset()
         self._features = list(self._dataset.columns.values)
+        self._preprocess_features()
+        self._initialize_datasets()
+        self._scale_input_features()
+        self._scale_target_feature()
+        self._update_loaders()
 
+    def _get_dataset(self):
+        """Obtain the dataset from file"""
+        path_dataset = "dataset/continuous dataset.csv"
+        dataset = pd.read_csv(path_dataset)
+
+        # discard data from the month covid lockdown happened
+        dataset = dataset[dataset["datetime"] <= "2020-03-01 00:00:00"]
+        dataset["datetime"] = pd.to_datetime(dataset["datetime"])
+        return dataset
+    
+    def _preprocess_features(self):
+        """Preprocess features by one hot encoding and adding features."""
+        # add one hot encoded Holiday ID feature
         df_one_hot_encoded = one_hot_encode("Holiday_ID", self._dataset["Holiday_ID"])
         self._dataset = pd.concat([self._dataset, df_one_hot_encoded], axis=1)
+
+        # add cyclical feature hour and weekend to dataset
         hours = self._dataset["datetime"].dt.hour
         self._dataset["hour_sin"] = np.sin(2*np.pi*hours/24)
         self._dataset["hour_cos"] = np.cos(2*np.pi*hours/24)
         self._dataset["weekend"] = (self._dataset["datetime"].dt.dayofweek > 4).map({True: 1, False: 0})
 
+        # update feature list
         self._features = list(self._dataset.columns.values)
+
+        # remove excessive features
         self._features.remove("datetime")
         self._features.remove("Holiday_ID")
-
-        self._initialize_dataset()
-
-    def _get_dataset(self):
-        path_dataset = "dataset/continuous dataset.csv"
-        dataset = pd.read_csv(path_dataset)
-
-        # discard data from the month covid lockdown happened.
-        dataset = dataset[dataset["datetime"] <= "2020-03-01 00:00:00"]
-        dataset["datetime"] = pd.to_datetime(dataset["datetime"])
-        return dataset
-
     
-    def _initialize_dataset(self):
-        dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, self._features)
+    def _initialize_datasets(self):
+        """Initializes timeseries dataset instance and obtain train-val-test datasets."""
+
+        self._features = ["nat_demand", "weekend"]
+        dat_time_series = TimeSeriesDataset(self._dataset, self._input_window, self._output_window, ["nat_demand", "weekend"])
         train, self._test = dat_time_series.train_test_split()
         self._training, self._validation = train.train_test_split()
 
-        self._scale_input_features()
-        self._update_loaders()
+    def _scale_input_features(self):
+        """Normalizes the input features."""
+        n_discrete_features = len(set(self._features) & set(DISCRETE_FEATURES))
 
-    def _inverse_transform_target(self, y_scaled):
-        """Convert normalized target (y_scaled) back to original units."""
-        return y_scaled * (self.target_std + self.eps) + self.target_mean
+        self._scaler.fit(self._training.scalable_data,n_discrete_features)
+        self._training.transform(self._scaler,n_discrete_features)
+        self._validation.transform(self._scaler,n_discrete_features)
+        self._test.transform(self._scaler,n_discrete_features)
 
     def _scale_target_feature(self):
+        """Normalizes the the target feature."""
         y_train = self._training._y
         self.target_mean = y_train.mean().item()
         self.target_std = y_train.std().item()
@@ -67,27 +85,26 @@ class DataLoaderTimeSeries:
         self._validation._y = (self._validation._y - self.target_mean) / (self.target_std + self.eps)
         self._test._y = (self._test._y - self.target_mean) / (self.target_std + self.eps)
 
-    def _scale_input_features(self):
-        n_discrete_features = len(set(self._features) & set(DISCRETE_FEATURES))
-        self._scaler.fit(self._training.scalable_data,n_discrete_features)
-        self._scale_target_feature()
-        self._training.transform(self._scaler,n_discrete_features)
-        self._validation.transform(self._scaler,n_discrete_features)
-        self._test.transform(self._scaler,n_discrete_features)
+    def _inverse_transform_target(self, y_scaled):
+        """Convert normalized target (y_scaled) back to original units."""
+        return y_scaled * (self.target_std + self.eps) + self.target_mean
     
     def _update_loaders(self):
+        """Initializes or updates the dataloaders for the train, validation and test set."""
         self._train_loader = DataLoader(self._training, batch_size=self._batch_size, shuffle=False)
         self._val_loader = DataLoader(self._validation, batch_size=self._batch_size, shuffle=False)
         self._test_loader = DataLoader(self._test, batch_size=self._batch_size, shuffle=False)
 
-    def remove_feature(self, feature):
+    def remove_feature(self, feature: str):
+        """Removes a feature from the datasets and updates the dataloaders."""
         self._training.remove_feature(feature)
         self._validation.remove_feature(feature)
         self._test.remove_feature(feature)
         self._features.remove(feature)
         self._update_loaders()
 
-    def get_feature_at_index(self, idx):
+    def get_feature_at_index(self, idx: int):
+        """Returns the feature at the given index"""
         return self._features[idx]
 
     @property
@@ -107,6 +124,6 @@ class DataLoaderTimeSeries:
         return self._test_loader
 
 if __name__ == "__main__":
-    dat_loader = DataLoaderTimeSeries(48)
+    dat_loader = DataLoaderTimeSeries(24)
     feature = dat_loader.get_feature_at_index(0)
-    dat_loader.remove_feature(feature)  
+    dat_loader.remove_feature(feature)

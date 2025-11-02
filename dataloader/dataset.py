@@ -1,14 +1,15 @@
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
-from scaler import MinMaxScaler
+from dataloader.scaler import ZScoreNormalization
 
 FEATURES = ['nat_demand', 'T2M_toc', 'QV2M_toc', 'TQL_toc', 'W2M_toc',
        'T2M_san', 'QV2M_san', 'TQL_san', 'W2M_san', 'T2M_dav', 'QV2M_dav',
        'TQL_dav', 'W2M_dav', 'Holiday_ID', 'holiday', 'school']
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, dataset, input_window: {24,48,72,120}, output_window = 24, features:list=FEATURES):
+    def __init__(self, dataset: pd.DataFrame, input_window:int = 24, output_window:int = 24, features:list=FEATURES):
+        """Initialize the timeseries dataset."""
         self._orig_dataset = dataset
         self._input_window = input_window
         self._output_window = output_window
@@ -29,9 +30,11 @@ class TimeSeriesDataset(Dataset):
         self._scaled_X = None
 
     def __len__(self):
+        """Returns the number of samples in the dataset."""
         return self._X.size(dim=0)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index:int):
+        """Returns the sample (normalized or not) at index."""
         if index > self._X.size(dim=0):
             raise ValueError(
                 (
@@ -41,11 +44,12 @@ class TimeSeriesDataset(Dataset):
 
         # permute(1, 0) changes x from [T, C] to [C, T]
         if self._scaled_X == None:
-            return self._X[index].permute(1, 0), self._y[index]
+            return self._X[index], self._X[index].permute(1, 0), self._y[index]
         else:
             return self._scaled_X[index].permute(1, 0), self._y[index]
     
-    def train_test_split(self, n_years=1):
+    def train_test_split(self, n_years:int = 1):
+        """Splits the data into two seperate dataset instances based on the number of years in the test dataset."""
         time = self._orig_dataset["datetime"].iloc[-1]
         split_idx_train = time - pd.DateOffset(years=n_years)
         split_idx_test = split_idx_train - pd.DateOffset(hours=self._input_window+self._output_window)
@@ -57,10 +61,12 @@ class TimeSeriesDataset(Dataset):
         arg_test = [self._input_window, self._output_window, self._features.copy()]
         return (TimeSeriesDataset(dat_train, *arg_train), TimeSeriesDataset(dat_test, *arg_test))
 
-    def transform(self, scaler: MinMaxScaler, n_discrete_features):
+    def transform(self, scaler: ZScoreNormalization, n_discrete_features:int):
+        """Transforms the continuous input data with a fitted scaler."""
         self._scaled_X = scaler.transform(self._X, n_discrete_features)
 
-    def remove_feature(self, feature):
+    def remove_feature(self, feature:str):
+        """Removes a feature from dataset"""
         feature_index = self._features.index(feature)
         flattened_X = self._X.view(-1,len(self._features))
         X_feature_removed = torch.cat((flattened_X[:,:feature_index], flattened_X[:,feature_index+1:]), dim=1)
